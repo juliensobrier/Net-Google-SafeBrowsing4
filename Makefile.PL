@@ -9,6 +9,7 @@ WriteMakefile(
 		LWP::UserAgent			=> 0,
 		URI				=> 0,
 		Digest::SHA			=> 0,
+		HTTP::Message			=> 0,
 		List::Util			=> 0,
 		constant			=> 0,
 		Test::More			=> 0,

@@ -29,6 +29,7 @@ This module requires these other modules and libraries:
   LWP::UserAgent
   URI
   Digest::SHA
+  HTTP::Message
   List::Util
   constant
   Test::More
