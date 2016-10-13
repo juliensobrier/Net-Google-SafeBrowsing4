@@ -7,6 +7,7 @@ use Carp;
 use LWP::UserAgent;
 use URI;
 use Digest::SHA qw(sha256);
+use HTTP::Message;
 use List::Util qw(first);
 use Text::Trim;
 use MIME::Base64;
@@ -167,6 +168,14 @@ Optional. Set to 1 to show performance information.
 
 Optional. Google Safe Browsing version. 4 by default
 
+=item http_timeout
+
+Optional. Network timeout setting for L<LWP::UserAgent> (60 seconds by default)
+
+=item http_compression
+
+Optional. List of accepted compressions for HTTP response. Enabling all supported compressions reported by L<HTTP::Message> by default.
+
 =back
 
 =cut
@@ -184,6 +193,9 @@ sub new {
 		errors		=> 0,
 		last_error	=> '',
 		perf		=> 0,
+
+		http_timeout    => 60,
+		http_compression => '' . HTTP::Message->decodable(),
 
 		%args,
 	};
@@ -281,8 +293,8 @@ sub update {
 	}
 	
 	my $result = NO_DATA;
-	
-	my $json = decode_json($response->content);
+
+	my $json = decode_json($response->decoded_content(encoding => 'none'));
 	my @data = @{ $json->{listUpdateResponses} };
 	
 	foreach my $list (@data) {
@@ -450,7 +462,7 @@ sub get_lists {
 	$self->debug($response->request->as_string);
 	$self->debug($response->as_string, "\n");
 
-	my $info = decode_json($response->content);
+	my $info = decode_json($response->decoded_content(encoding => 'none'));
 	return $info->{threatLists};
 }
 
@@ -644,8 +656,12 @@ sub ua {
 
 	if (! exists $self->{ua}) {
 		my $ua = LWP::UserAgent->new;
-  		$ua->timeout(60);
-  		$ua->default_header("Content-Type" => "application/json");
+		$ua->timeout($self->{http_timeout});
+		$ua->default_header("Content-Type" => "application/json");
+
+		if ($self->{http_compression}) {
+			$ua->default_header("Accept-Encoding" => $self->{http_compression});
+		}
 
 		$self->{ua} = $ua;
 	}
@@ -1051,7 +1067,7 @@ sub request_full_hash {
 # 		}
 	}
 
-	return $self->parse_full_hashes($response->content);
+	return $self->parse_full_hashes($response->decoded_content(encoding => 'none'));
 }
 
 =head2 parse_full_hashes()
