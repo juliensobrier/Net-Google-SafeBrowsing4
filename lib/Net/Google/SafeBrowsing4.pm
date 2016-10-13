@@ -64,7 +64,7 @@ The Google Safe Browsing database must be stored and managed locally. L<Net::Goo
 
 The source code is available on github at L<https://github.com/juliensobrier/Net-Google-SafeBrowsing4>.
 
-If you do not need to inspect more than 10,000 URLs a day, you can use L<Net::Google::SafeBrowsing4::Lookup> with the Google Safe Browsing v4 Lookup API which does not require to store and maintain a local database.
+If you do not need to inspect more than 10,000 URLs a day, you can use Net::Google::SafeBrowsing4::Lookup with the Google Safe Browsing v4 Lookup API which does not require to store and maintain a local database.
 
 
 IMPORTANT: Google Safe Browsing v4 requires an API key from Google: https://developers.google.com/safe-browsing/v4/get-started.
@@ -117,9 +117,6 @@ use constant {
 
 =head1 CONSTRUCTOR
 
-=over 4
-
-=back
 
 =head2 new()
 
@@ -207,9 +204,6 @@ sub new {
 
 =head1 PUBLIC FUNCTIONS
 
-=over 4
-
-=back
 
 =head2 update()
 
@@ -445,6 +439,7 @@ Return an array reference of all the lists:
   ]
 
 =cut
+
 sub get_lists {
 	my ($self, %args) = @_;
 	
@@ -466,10 +461,6 @@ sub get_lists {
 =head1 PRIVATE FUNCTIONS
 
 These functions are not intended to be used externally.
-
-=over 4
-
-=back
 
 =head2 lookup_suffix()
 
@@ -543,6 +534,7 @@ sub lookup_suffix {
 Transform a list from a string ("MALWARE/*/*") into a list object.
 
 =cut
+
 sub make_lists {
 	my ($self, %args) = @_;
 	my @lists		= @{ $args{lists} || $self->{lists} || [] };
@@ -626,6 +618,7 @@ sub update_error {
 Format the list objects for update requests.
 
 =cut
+
 sub make_lists_for_update {
 	my ($self, %args) = @_;
 	my @lists					= @{ $args{lists} };
@@ -1008,7 +1001,7 @@ sub request_full_hash {
 	# get state for each list
 	$info->{clientStates} = [];
 	foreach my $list (@lists) {
-		$self->debug(Dumper $list);
+# 		$self->debug(Dumper $list);
 		push(@{ $info->{clientStates} }, $self->{storage}->get_state(list => $list));
 		
 	}
