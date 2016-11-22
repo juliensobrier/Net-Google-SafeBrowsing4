@@ -893,12 +893,17 @@ sub canonical_uri {
 # 	$self->debug("\t$escape\n");
 
 	# other weird case if domain = digits only, try to translate it to IP address
-	if ((my $domain = URI->new($escape)->host) =~/^\d+$/) {
+	my $domain = URI->new($escape)->host;
+	if ($domain =~/^\d+$/) {
 		my $ip = Socket::inet_ntoa(Socket::inet_aton($domain));
 
 		$uri = URI->new($escape);
 		$uri->host($ip);
 
+		$escape = $uri->as_string;
+	} elsif ($domain =~ s/\.+$//) {
+		$uri = URI->new($escape);
+		$uri->host($domain);
 		$escape = $uri->as_string;
 	}
 

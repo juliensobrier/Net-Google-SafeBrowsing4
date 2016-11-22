@@ -41,7 +41,7 @@ is( $gsb->canonical_uri('www.google.com/')->as_string, 'http://www.google.com/',
 is( $gsb->canonical_uri('www.google.com')->as_string, 'http://www.google.com/', 'canonicalization "www.google.com" is OK');
 is( $gsb->canonical_uri('http://www.evil.com/blah#frag')->as_string, 'http://www.evil.com/blah', 'canonicalization "http://www.evil.com/blah" is OK');
 is( $gsb->canonical_uri('http://www.GOOgle.com/')->as_string, 'http://www.google.com/', 'canonicalization "http://www.google.com/" is OK');
-# is( $gsb->canonical_uri('http://www.google.com.../')->as_string, 'http://www.google.com/', 'canonicalization "http://www.google.com/" is OK'); # Dies!
+is( $gsb->canonical_uri('http://www.google.com.../')->as_string, 'http://www.google.com/', 'canonicalization "http://www.google.com/" is OK');
 is( $gsb->canonical_uri("http://www.google.com/foo\tbar\rbaz\n2")->as_string, 'http://www.google.com/foobarbaz2', 'canonicalization "http://www.google.com/foobarbaz2" is OK');
 is( $gsb->canonical_uri('http://www.google.com/q?')->as_string, 'http://www.google.com/q?', 'canonicalization "http://www.google.com/q?" is OK');
 is( $gsb->canonical_uri('http://www.google.com/q?r?')->as_string, 'http://www.google.com/q?r?', 'canonicalization "http://www.google.com/q?r?" is OK');
