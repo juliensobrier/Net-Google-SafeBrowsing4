@@ -15,7 +15,7 @@ our $VERSION = '0.1';
 
 =head1 NAME
 
-Net::Google::SafeBrowsing4::Filr - File storage for the Google Safe Browsing v4 database
+Net::Google::SafeBrowsing4::File - File storage for the Google Safe Browsing v4 database
 
 =head1 SYNOPSIS
 
@@ -87,7 +87,7 @@ sub new {
 		data => { },
 		%args,
 	};
-	
+
 
 	bless $self, $class or croak "Can't bless $class: $!";
 
@@ -121,7 +121,7 @@ sub init {
 	if (! -d $self->{path}) {
 		mkdir($self->{path}) or croak "Cannot create directory " . $self->{path} . ": $!\n";;
 	}
-	
+
 	# file to hold all updates
 	my $file = path(join("/", $self->{path}, $self->{files}->{updates}));
 	if (! -e $file) {
@@ -129,7 +129,7 @@ sub init {
 		if ($self->{sticky}) {
 			$self->{data}->{ $self->{files}->{updates} } = { %update };
 		}
-		
+
 		nstore(\%update, $file) or croak "Cannot store information into $file: $!\n";
 	}
 }
@@ -141,19 +141,19 @@ sub save {
 	my @hashes		= @{ $args{add} 		|| [] };
 	my @remove		= @{ $args{remove} 	|| [] };
 	my $state			= $args{'state'}		|| '';
-	
+
 	# save the information somewhere
 	my $file = path(join("/", $self->{path}, $self->list_to_file($list)));
 	$self->debug("Save hashes to $file");
-	
+
 	my %data = ('state' => $state, hashes => [@hashes]); # hashes are already stored
 	if (-e $file && ! $override) {
 		my $db = retrieve($file);
 		$self->debug("Load $file (save)");
-		
+
 		$self->debug("hashes to remove: ", scalar(@remove));
 		$self->debug("hashes to add: ", scalar(@hashes));
-		
+
 		$self->debug("Number of hashes before removal: ", scalar @{ $db->{hashes} });
 		foreach my $index (@remove) {
 			$self->debug("Remove index $index");
@@ -161,15 +161,15 @@ sub save {
 		}
 		$db->{hashes} = [ grep { $_ ne '' } @{ $db->{hashes} } ];
 		$self->debug("Number of hashes after removal: ", scalar @{ $db->{hashes} });
-		
+
 		$data{hashes} = [sort { $a cmp $b } (@hashes, @{ $db->{hashes} })];
 	}
-	
+
 	nstore(\%data, $file) or croak "Cannot save data to $file: $!\n";
 	if ($self->{sticky}) {
 		$self->{data}->{ $self->list_to_file($list) } = { %data };
 	}
-	
+
 	# return the list of hashes, sorted, from the new storage
 	$self->debug("Number of hashes at end: ", scalar @{ $data{hashes} });
 	return @{ $data{hashes} };
@@ -180,10 +180,10 @@ sub save {
 sub reset {
 	my ($self, %args) = @_;
 	my $list 			= $args{list} 			|| croak "Missing list information";
-	
+
 	my $file = path(join("/", $self->{path}, $self->list_to_file($list)));
 	unlink($file);
-	
+
 	if ($self->{sticky}) {
 		$self->{data}->{ $self->list_to_file($list) } = { };
 	}
@@ -195,7 +195,7 @@ sub next_update {
 
 	# make sure the file exists
 	$self->init();
-	
+
 	my $update = { };
 	if ($self->{sticky} && exists $self->{data}->{ $self->{files}->{updates} }) {
 		$update = $self->{data}->{ $self->{files}->{updates} };
@@ -205,12 +205,12 @@ sub next_update {
 		my $file = path(join("/", $self->{path}, $self->{files}->{updates}));
 		$update = retrieve($file);
 		$self->debug("Load $file (reset)");
-		
+
 		if ($self->{sticky}) {
 			$self->{data}->{ $self->{files}->{updates} } = $update;;
 		}
 	}
-	
+
 	return $update->{next_update} || 0;
 }
 
@@ -219,7 +219,7 @@ sub last_update {
 
 	# make sure the file exists
 	$self->init();
-	
+
 	my $update = { };
 	if ($self->{sticky} && exists $self->{data}->{ $self->{files}->{updates} }) {
 		$update = $self->{data}->{ $self->{files}->{updates} };
@@ -229,14 +229,14 @@ sub last_update {
 		my $file = path(join("/", $self->{path}, $self->{files}->{updates}));
 		$update = retrieve($file);
 		$self->debug("Load $file (last_udpate)");
-		
+
 		if ($self->{sticky}) {
 			$self->{data}->{ $self->{files}->{updates} } = $update;
 		}
 	}
-	
 
-	
+
+
 	return { last_update => $update->{last_update} || 0, errors => $update->{errors} || 0 };
 }
 
@@ -244,7 +244,7 @@ sub last_update {
 sub get_state {
 	my ($self, %args) = @_;
 	my $list 					= $args{list} 			|| croak "Missing list information\n";
-	
+
 	my $update = { };
 	if ($self->{sticky} && exists $self->{data}->{ $self->list_to_file($list) }) {
 		$update = $self->{data}->{ $self->list_to_file($list) };
@@ -257,13 +257,13 @@ sub get_state {
 		else {
 			$self->debug("Load $file (get_state)");
 			$update = retrieve($file);
-			
+
 			if ($self->{sticky}) {
 				$self->{data}->{ $self->list_to_file($list) } = $update;
 			}
 		}
 	}
-	
+
 	return $update->{'state'} || '';
 }
 
@@ -271,11 +271,11 @@ sub updated {
 	my ($self, %args) = @_;
 	my $time = $args{'time'}	|| time();
 	my $next = $args{'next'}	|| time() + 1800;
-	
+
 	# next update applies to all lists, save it
 	# make sure the file exists
 	$self->init();
-	
+
 	my $file = path(join("/", $self->{path}, $self->{files}->{updates}));
 	my $update = { };
 	if ($self->{sticky} && exists $self->{data}->{ $self->{files}->{updates} }) {
@@ -286,13 +286,13 @@ sub updated {
 		$self->debug("Load $file (updated)");
 		$update = retrieve($file);
 	}
-	
+
 	$update->{next_update} = $next;
 	$update->{last_udpate} = $time;
 	$update->{errors} = 0;
-	
+
 	nstore($update, $file) or croak "Cannot save data to $file: $!\n";
-	
+
 	if ($self->{sticky}) {
 		$self->{data}->{ $self->{files}->{updates} } = $update;
 	}
@@ -305,10 +305,10 @@ sub update_error {
 	my $time 		= $args{'time'}	|| time();
 	my $wait 		= $args{'wait'}	|| 1800;
 	my $errors	= $args{errors}	|| 0;
-	
+
 	# make sure the file exists
 	$self->init();
-	
+
 	my $file = path(join("/", $self->{path}, $self->{files}->{updates}));
 	my $update = { };
 	if ($self->{sticky} && exists $self->{data}->{ $self->{files}->{updates} }) {
@@ -319,11 +319,11 @@ sub update_error {
 		$self->debug("Load $file (update_error)");
 		$update = retrieve($file);
 	}
-	
+
 	$update->{next_update} = $time + $wait;
 	$update->{last_udpate} = $time;
 	$update->{errors}	= $errors;
-	
+
 	nstore($update, $file) or croak "Cannot save data to $file: $!\n";
 	if ($self->{sticky}) {
 		$self->{data}->{ $self->{files}->{updates} } = $update;
@@ -335,13 +335,13 @@ sub get_prefixes {
 	my ($self, %args) = @_;
 	my @lists 			= @{ $args{lists} 	|| [] };
 	my @hashes			= @{ $args{hashes} 	|| [] };
-	
+
 	my @data = ();
-	
+
 	$self->debug("Number of lists: ", scalar @lists);
 
 	foreach my $list (@lists) {
-		
+
 		my $db = { };
 		if ($self->{sticky} && exists $self->{data}->{ $self->list_to_file($list) }) {
 			$db = $self->{data}->{ $self->list_to_file($list) };
@@ -352,21 +352,21 @@ sub get_prefixes {
 				$self->debug("File $file does not exist");
 				next;
 			}
-	
+
 			$self->debug("Load $file (get_prefixes)");
 			$db = retrieve($file);
-			
+
 			if ($self->{sticky}) {
 				$self->{data}->{ $self->list_to_file($list) } = $db;
 			}
 		}
-		
+
 		foreach my $hash (@hashes) {
 			my $prefix = first { substr($hash, 0, length($_)) eq $_ } @{ $db->{hashes} };
 			push(@data, { prefix => $prefix, list => $list }) if (defined $prefix);
 		}
 	}
-	
+
 	return @data;
 }
 
@@ -385,23 +385,23 @@ sub add_full_hashes {
 	elsif (-e $file) {
 		$db = retrieve($file);
 	}
-	
+
 	foreach my $hash (@hashes) {
 		my $cache = $hash->{cache};
 		$cache =~ s/s//;
 		$self->debug("cache: $cache");
-		
+
 		$hash->{expire} = $cache + $timestamp;
 		push(@{ $db->{hashes} }, $hash);
 	}
-	
+
 	$self->debug("Save ", scalar(@{ $db->{hashes} }), " full hashes to $file");
 	nstore($db, $file) or croak "Cannot save data to $file: $!\n";
-	
+
 	if ($self->{sticky}) {
 		$self->{data}->{ $self->{files}->{full_hashes} } = $db;
 	}
-	
+
 	return (@{ $db->{hashes} });
 }
 
@@ -410,7 +410,7 @@ sub get_full_hashes {
 	my ($self, %args) = @_;
 	my @lists 				= @{ $args{lists} || [] };
 	my $hash					= $args{hash}			|| return ();
-	
+
 	my $db = { };
 	if ($self->{sticky} && exists $self->{data}->{ $self->{files}->{full_hashes} }) {
 		$db = $self->{data}->{ $self->{files}->{full_hashes} };
@@ -420,25 +420,25 @@ sub get_full_hashes {
 		if (! -e $file) {
 			return ();
 		}
-		
+
 		$self->debug("Load $file");
 		$db = retrieve($file);
 	}
-	
+
 	my @hashes = ();
 	$self->debug("Number of full hashes on file: ", scalar @{ $db->{hashes} });
 	foreach my $list (@lists) {
-		my $result = first { 
-													$_->{hash} eq $hash && 
+		my $result = first {
+													$_->{hash} eq $hash &&
 													$_->{list}->{threatEntryType} eq $list->{threatEntryType} &&
 													$_->{list}->{threatType} eq $list->{threatType} &&
 													$_->{list}->{platformType} eq $list->{platformType} &&
 													$_->{expire} > time()
 												} @{ $db->{hashes} };
-		
-		push(@hashes, $result) if (defined $result);	
+
+		push(@hashes, $result) if (defined $result);
 	}
-	
+
 	return @hashes;
 }
 
@@ -447,7 +447,7 @@ sub get_full_hashes {
 
 sub list_to_file {
 	my ($self, $list) = @_;
-	
+
 	return join("_", $list->{threatType}, $list->{platformType}, $list->{threatEntryType}) . ".gsb4";
 }
 
@@ -458,20 +458,20 @@ sub close {
 	if ($self->{keep_all} == 0) {
 		return;
 	}
-	
+
 	my $file = path(join("/", $self->{path}, $self->{files}->{full_hashes}));
 	if (! -e $file) {
 		return;
 	}
-	
+
 	my $db = retrieve($file);
-	
+
 	my @results = grep { $_->{expire} > time() } @{ $db->{hashes} };
 	if (scalar @results < scalar @{ $db->{hashes} }) {
 		$db->{hashes} = [@results];
 		nstore($db, $file) or croak "Cannot save data to $file: $!\n";
 	}
-	
+
 	$self->{data} = { };
 }
 

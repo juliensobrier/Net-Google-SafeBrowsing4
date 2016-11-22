@@ -76,7 +76,7 @@ Arguments
 
 Optional. override the local list of hashes. 0 by default (do not override)
 
-=item hashes
+=item add
 
 Optional. List of hashes to add.
 
@@ -100,14 +100,14 @@ Required. Google Safe Browsing list.
 
 sub save {
 	my ($self, %args) = @_;
-	my $list 			= $args{list} 			|| croak "Missing list information";
-	my $override	= $args{override}		|| 0;
-	my @hashes		= @{ $args{add} 		|| [] };
+	my $list 		= $args{list} 		|| croak "Missing list information";
+	my $override	= $args{override}	|| 0;
+	my @hashes		= @{ $args{add} 	|| [] };
 	my @remove		= @{ $args{remove} 	|| [] };
-	my $state			= $args{'state'}		|| '';
-	
+	my $state		= $args{'state'}	|| '';
+
 	# save the information somewhere
-	
+
 	# return the list of hashes, sorted, from the new storage
 	return @hashes;
 }
@@ -136,8 +136,8 @@ No return value
 
 sub reset {
 	my ($self, %args) = @_;
-	my $list 			= $args{list} 			|| croak "Missing list information\n";
-	
+	my $list = $args{list} || croak "Missing list information\n";
+
 	# remove all hashes, empty state
 }
 
@@ -157,7 +157,7 @@ sub next_update {
 	my ($self, %args) = @_;
 
 	# retrieve information from storage
-	
+
 	return time() - 10;
 }
 
@@ -185,7 +185,7 @@ Required. Google Safe Browsing list.
 sub get_state {
 	my ($self, %args) = @_;
 	my $list 			= $args{list} 			|| croak "Missing list information\n";
-		
+
 	return "";
 }
 
@@ -255,7 +255,7 @@ sub updated {
 	my ($self, %args) = @_;
 	my $time = $args{'time'}	|| time();
 	my $next = $args{'next'}	|| time() + 1800;
-	
+
 	# next update applies to all lists, save it
 }
 

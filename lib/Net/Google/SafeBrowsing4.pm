@@ -4,56 +4,47 @@ use strict;
 use warnings;
 
 use Carp;
-use LWP::UserAgent;
-use URI;
+use Data::Dumper;
 use Digest::SHA qw(sha256);
+use Exporter qw(import);
 use HTTP::Message;
+use IO::Socket::SSL qw(inet4);
+use JSON::XS;
 use List::Util qw(first);
-use Text::Trim;
+use LWP::UserAgent;
 use MIME::Base64;
 use String::HexConvert;
-use IO::Socket::SSL 'inet4';
-use Data::Dumper;
-use JSON::XS;
+use Text::Trim;
 use Time::HiRes qw(time);
+use URI;
 
-use Exporter 'import';
 our @EXPORT = qw(DATABASE_RESET INTERNAL_ERROR SERVER_ERROR NO_UPDATE NO_DATA SUCCESSFUL);
-
-
-BEGIN {
-    IO::Socket::SSL::set_ctx_defaults(
-#         verify_mode => Net::SSLeay->VERIFY_PEER(),
-# 			SSL_verify_mode => 0,
-    );
-}
 
 our $VERSION = '0.1';
 
-
 =head1 NAME
 
-Net::Google::SafeBrowsing4 - Perl extension for the Google Safe Browsing v4 API. (Google Safe Browsing v3 has been deprecated by Google.)
+Net::Google::SafeBrowsing4 - Perl extension for the Google Safe Browsing v4 API.
 
 =head1 SYNOPSIS
 
-  use Net::Google::SafeBrowsing4;
-  use Net::Google::SafeBrowsing4::File;
-  
-  my $storage = Net::Google::SafeBrowsing4::File->new(path => '.');
-  my $gsb = Net::Google::SafeBrowsing4->new(
-	  key 	=> "my key", 
-	  storage	=> $storage,
-  );
-  
-  $gsb->update();
-  my @matches = $gsb->lookup(url => 'http://ianfette.org/');
-  
-  if (scalar @matches > 0) {
-	  print "http://ianfette.org/ is flagged as a dangerous site\n";
-  }
+	use Net::Google::SafeBrowsing4;
+	use Net::Google::SafeBrowsing4::File;
 
-  $storage->close();
+	my $storage = Net::Google::SafeBrowsing4::File->new(path => '.');
+	my $gsb = Net::Google::SafeBrowsing4->new(
+		key 	=> "my key",
+		storage	=> $storage,
+	);
+
+	$gsb->update();
+	my @matches = $gsb->lookup(url => 'http://ianfette.org/');
+
+	if (scalar @matches > 0) {
+		print "http://ianfette.org/ is flagged as a dangerous site\n";
+	}
+
+	$storage->close();
 
 =head1 DESCRIPTION
 
@@ -109,10 +100,10 @@ The operation was successful.
 use constant {
 	DATABASE_RESET					=> -6,
 	INTERNAL_ERROR					=> -3,	# internal/parsing error
-	SERVER_ERROR						=> -2, 	# Server sent an error back
-	NO_UPDATE								=> -1,	# no update (too early)
-	NO_DATA									=> 0, 	# no data sent
-	SUCCESSFUL							=> 1,	# data sent
+	SERVER_ERROR					=> -2,	# Server sent an error back
+	NO_UPDATE						=> -1,	# no update (too early)
+	NO_DATA							=> 0,	# no data sent
+	SUCCESSFUL						=> 1,	# data sent
 };
 
 
@@ -123,12 +114,12 @@ use constant {
 
 Create a Net::Google::SafeBrowsing4 object
 
-  my $gsb = Net::Google::SafeBrowsing4->new(
-		key 	=> "my key", 
+	my $gsb = Net::Google::SafeBrowsing4->new(
+		key		=> "my key",
 		storage	=> Net::Google::SafeBrowsing4::File->new(path => '.'),
 		debug	=> 0,
-		lists => ["*/ANY_PLATFORM/URL"],
-  );
+		lists	=> ["*/ANY_PLATFORM/URL"],
+	);
 
 Arguments
 
@@ -185,11 +176,11 @@ sub new {
 
 	my $self = { # default arguments
 		base		=> 'https://safebrowsing.googleapis.com',
-		lists			=> [],
+		lists		=> [],
 		all_lists	=> [],
-		key				=> '',
+		key			=> '',
 		version		=> '4',
-		debug			=> 0,
+		debug		=> 0,
 		errors		=> 0,
 		last_error	=> '',
 		perf		=> 0,
@@ -207,7 +198,7 @@ sub new {
 	if (ref $self->{list} ne 'ARRAY') {
 		$self->{list} = [$self->{list}];
 	}
-	
+
 	$self->{base} = join("/", $self->{base}, "v" . $self->{version});
 
 	bless $self, $class or croak "Can't bless $class: $!";
@@ -221,7 +212,7 @@ sub new {
 
 Perform a database update.
 
-  $gsb->update();
+	$gsb->update();
 
 Return the status of the update (see the list of constants above): INTERNAL_ERROR, SERVER_ERROR, NO_UPDATE, NO_DATA or SUCCESSFUL
 
@@ -248,23 +239,23 @@ Be careful if you set this option to 1 as too frequent updates might result in t
 =cut
 
 sub update {
-	my ($self, %args) 	= @_;
+	my ($self, %args)	= @_;
 	my $lists		= $args{lists} || $self->{lists} || [];
-	my $force 	= $args{force}	|| 0;
-	
-	
+	my $force	= $args{force} || 0;
+
+
 	# Check if it is too early
 	# TODO: some lists may have been updated , others not. Update time has to be by list
 	my $time = $self->{storage}->next_update();
 	if ($time > time() && $force == 0) {
 		$self->debug("Too early to update the local storage\n");
-		
+
 		return NO_UPDATE;
 	}
 	else {
 		$self->debug("time for update: $time / ", time());
 	}
-	
+
 	my $all_lists = $self->make_lists(lists => $lists);
 	my $info = {
 		client => {
@@ -273,17 +264,17 @@ sub update {
 		},
 		listUpdateRequests => [ $self->make_lists_for_update(lists => $all_lists) ]
 	};
-	
+
 	my $last_update = time;
-	
-	my $response = $self->ua->post($self->{base} . "/threatListUpdates:fetch?key=" . $self->{key}, 
+
+	my $response = $self->ua->post($self->{base} . "/threatListUpdates:fetch?key=" . $self->{key},
 		"Content-Type" => "application/json",
 		Content => encode_json($info)
 	);
-	
+
 	$self->debug($response->request->as_string);
 	$self->debug($response->as_string, "\n");
-	
+
 	if (! $response->is_success) {
 		$self->error("Update request failed\n");
 
@@ -291,17 +282,17 @@ sub update {
 
 		return SERVER_ERROR;
 	}
-	
+
 	my $result = NO_DATA;
 
 	my $json = decode_json($response->decoded_content(encoding => 'none'));
 	my @data = @{ $json->{listUpdateResponses} };
-	
+
 	foreach my $list (@data) {
 		my $threat = $list->{threatType};						# MALWARE
 		my $threatEntry = $list->{threatEntryType}; # URL
 		my $platform = $list->{platformType};				# ANY_PLATFORM
-		
+
 		my $update = $list->{responseType};					# FULL_UPDATE
 
 		# save and check the update
@@ -309,20 +300,20 @@ sub update {
 		foreach my $addition (@{ $list->{additions} }) {
 			my $hashes_b64 = $addition->{rawHashes}->{rawHashes}; # 4 bytes
 			my $size = $addition->{rawHashes}->{prefixSize};
-		
+
 			my $hashes = decode_base64($hashes_b64); # hexadecimal
 			push(@hex, unpack("(a$size)*", $hashes));
 		}
-		
+
 		my @remove = ();
 		foreach my $removal (@{ $list->{removals} }) {
 			push(@remove, @{ $removal->{rawIndices}->{indices} });
 		}
-		
+
 		if (scalar @hex > 0) {
 			$result = SUCCESSFUL if ($result >= 0);
 			@hex = sort {$a cmp $b} @hex; # lexical sort
-			
+
 			my @hashes = $self->{storage}->save(
 				list => {
 					threatType 			=> $threat,
@@ -334,10 +325,10 @@ sub update {
 				remove 		=> [@remove],
 				'state'		=> $list->{newClientState},
 			);
-			
-			
+
+
 			my $check = trim encode_base64 sha256(@hashes);
-			
+
 			if ($check ne $list->{checksum}->{sha256}) {
 				$self->error("$threat/$platform/$threatEntry update error: checksum do not match: ", $check, " / ", $list->{checksum}->{sha256});
 				$self->{storage}->reset(
@@ -347,18 +338,18 @@ sub update {
 						platformType		=> $list->{platformType}
 					}
 				);
-				
+
 				$result = DATABASE_RESET;
 			}
 			else {
 				$self->debug("$threat/$platform/$threatEntry update: checksum match");
 			}
 		}
-		
+
 		# TODO: handle caching
 	}
-	
-	
+
+
 	my $wait = $json->{minimumWaitDuration};
 	my $next = time();
 	if ($wait =~ /(\d+)(\.\d+)?s/i) {
@@ -366,8 +357,8 @@ sub update {
 	}
 
 	$self->{storage}->updated('time' => $last_update, 'next' => $next);
-	
-	
+
+
 	return $result;
 }
 
@@ -454,11 +445,11 @@ Return an array reference of all the lists:
 
 sub get_lists {
 	my ($self, %args) = @_;
-	
-	my $response = $self->ua->get($self->{base} . "/threatLists?key=" . $self->{key}, 
+
+	my $response = $self->ua->get($self->{base} . "/threatLists?key=" . $self->{key},
 		"Content-Type" => "application/json"
 	);
-	
+
 	$self->debug($response->request->as_string);
 	$self->debug($response->as_string, "\n");
 
@@ -489,12 +480,12 @@ sub lookup_suffix {
 	my $start = time();
 	my @full_hashes = $self->full_hashes($url);
 	$self->perf("Full hashes from URL: ", time() - $start,  "s ");
-	
+
  	# Local lookup
  	$start = time();
  	my @prefixes = $self->{storage}->get_prefixes(hashes => [@full_hashes], lists => $lists);
  	$self->perf("Local lookup: ", time() - $start,  "s ");
- 	
+
 	if (scalar @prefixes == 0) {
 		$self->debug("No hit in local lookup\n");
 		return ();
@@ -502,13 +493,13 @@ sub lookup_suffix {
 
 	$self->debug("Found ", scalar(@prefixes), " prefix(s) in local database\n");
 # 	$self->debug(Dumper(\@prefixes));
-	
+
 
 	# get stored full hashes
 	$start = time();
 	foreach my $hash (@full_hashes) {
 		my @hashes = $self->{storage}->get_full_hashes(hash => $hash, lists => $lists);
-		
+
 		if (scalar @hashes > 0) {
 			$self->debug("Full hashes found locally: ", scalar(@hashes), "\n");
 
@@ -523,7 +514,7 @@ sub lookup_suffix {
 	$start = time();
 	my @hashes = $self->request_full_hash(prefixes => [ @prefixes ]);
 	$self->perf("Full hash request: ", time() - $start,  "s ");
-	
+
 	# Make sure the full hash match one of the full hashes for a give URL
 	my @results = ();
 	$start = time();
@@ -532,12 +523,12 @@ sub lookup_suffix {
 		push(@results, @matches) if (scalar @matches > 0);
 	}
 	$self->perf("Full hash check: ", time() - $start,  "s ");
-	
-	
+
+
 	$start = time();
 	$self->{storage}->add_full_hashes(hashes => [@results], timestamp => time());
 	$self->perf("Save full hashes: ", time() - $start,  "s ");
-	
+
 	return @results;
 }
 
@@ -550,17 +541,17 @@ Transform a list from a string ("MALWARE/*/*") into a list object.
 sub make_lists {
 	my ($self, %args) = @_;
 	my @lists		= @{ $args{lists} || $self->{lists} || [] };
-	
+
 	if (scalar @lists == 0) {
 		if (scalar @{ $self->{all_lists} } == 0) {
 			$self->{all_lists} = $self->get_lists();
 		}
-	
+
 		return $self->{all_lists};
 	}
-	
+
 	my @all = ();
-	
+
 	foreach my $list (@lists) {
 		$list = uc trim($list);
 		if ($list !~ /^[*_A-Z]+\/[*_A-Z]+\/[*_A-Z]+$/) {
@@ -569,11 +560,11 @@ sub make_lists {
 		}
 		if ($list =~ /\*/) {
 			my ($threat, $platform, $threatEntry) = split /\//, $list;
-			
+
 			if (scalar @{ $self->{all_lists} } == 0) {
 				$self->{all_lists} = $self->get_lists();
 			}
-			
+
 			foreach my $original (@{ $self->{all_lists} }) {
 				if (($threat eq "*" || $original->{threatType} eq $threat) &&
 				    ($platform eq "*" || $original->{platformType} eq $platform) &&
@@ -584,7 +575,7 @@ sub make_lists {
 		}
 		elsif ($list =~ /^([_A-Z]+)\/([_A-Z]+)\/([_A-Z]+)$/) {
 			my ($threat, $platform, $threatEntry) = split /\//, $list;
-			
+
 			push(@all, {
 				threatType			=> $threat,
 				platformType		=> $platform,
@@ -592,7 +583,7 @@ sub make_lists {
 			});
 		}
 	}
-	
+
 	return [@all];
 }
 
@@ -634,14 +625,14 @@ Format the list objects for update requests.
 sub make_lists_for_update {
 	my ($self, %args) = @_;
 	my @lists					= @{ $args{lists} };
-	
+
 	for(my $i = 0; $i < scalar @lists; $i++) {
 		$lists[$i]->{'state'} = $self->{storage}->get_state(list => $lists[$i]);
 		$lists[$i]->{constraints} = {
 			supportedCompressions => ["RAW"]
 		};
 	}
-	
+
 	return @lists;
 }
 
@@ -749,11 +740,11 @@ Find all canonical domains a domain.
 =cut
 
 sub canonical_domain {
-	my ($self, $domain) 	= @_;
+	my ($self, $domain) = @_;
 
 	# Remove all leading and trailing dots.
-  $domain =~ s/^\.+//;
-  $domain =~ s/\.+$//;
+	$domain =~ s/^\.+//;
+	$domain =~ s/\.+$//;
 
 	# Replace consecutive dots with a single dot.
 	while ($domain =~ s/\.\.+/\./g) { }
@@ -766,7 +757,7 @@ sub canonical_domain {
 
 	if ($domain =~ /^\d+\.\d+\.\d+\.\d+$/) { # loose check for IP address, should be enough
 		return @domains;
-	} 
+	}
 
 	my @parts = split/\./, $domain;
 	splice(@parts, 0, -6); # take 5 top most compoments
@@ -790,7 +781,7 @@ sub canonical_path {
 	my ($self, $path) 	= @_;
 
 	my @paths = ($path); # return full path
-	
+
 	# without query string
 	if ($path =~ /\?/) {
 		$path =~ s/\?.*$//;
@@ -815,7 +806,7 @@ sub canonical_path {
 
 		push(@paths, $previous);
 	}
-	
+
 	return @paths;
 }
 
@@ -830,7 +821,7 @@ sub canonical {
 
 	my @urls = ();
 
-# 	my $uri = URI->new($url)->canonical;
+#	my $uri = URI->new($url)->canonical;
 	my $uri = $self->canonical_uri($url);
 	my @domains = $self->canonical_domain($uri->host);
 	my @paths = $self->canonical_path($uri->path_query);
@@ -859,13 +850,13 @@ sub canonical_uri {
 	$url = trim $url;
 
 	# Special case for \t \r \n
-	while ($url =~ s/^([^?]+)[\r\t\n]/$1/sgi) { } 
+	while ($url =~ s/^([^?]+)[\r\t\n]/$1/sgi) { }
 
 	my $uri = URI->new($url)->canonical; # does not deal with directory traversing
 
 # 	$self->debug("0. $url => " . $uri->as_string . "\n");
 
-	
+
 	if (! $uri->scheme() || $uri->scheme() eq '') {
 		$uri = URI->new("http://$url")->canonical;
 	}
@@ -881,7 +872,7 @@ sub canonical_uri {
 	# Remove empty fragment
 	$escape =~ s/#$//;
 
-	# canonial does not handle ../ 
+	# canonial does not handle ../
 # 	$self->debug("\t$escape\n");
 	while($escape =~ s/([^\/])\/([^\/]+)\/\.\.([\/?].*)$/$1$3/gi) {  }
 	while($escape =~ s/([^\/])\/([^\/]+)\/\.\.$/$1/gi) {  }
@@ -951,12 +942,12 @@ sub canonical_uri {
 			$target = URI::Escape::uri_unescape($target);
 		}
 
-		
+
 		$escape =~ s/\/\Q$source\E/\/$target/;
 
 		while ($escape =~ s/#/%23/sgi) { } # fragement has been removed earlier
 		while ($escape =~ s/^([a-z]+:\/\/[^\/]+\/.*)%5e/$1\&/sgi) { } # not in the host name
-# 		while ($escape =~ s/%5e/&/sgi) { } 
+# 		while ($escape =~ s/%5e/&/sgi) { }
 
 		while ($escape =~ s/%([^0-9a-f]|.[^0-9a-f])/%25$1/sgi) { }
 	}
@@ -997,14 +988,14 @@ Request full full hashes for specific prefixes from Google.
 sub request_full_hash {
 	my ($self, %args) = @_;
 	my @prefixes			= @{ $args{prefixes} || [] };
-		
+
 	my $info = {
 		client => {
 			clientId => 'Net::Google::SafeBrowsing4',
 			clientVersion	=> $VERSION
 		},
 	};
-	
+
 	my @lists = ();
 	my %hashes = ();
 	my %threats = ();
@@ -1013,20 +1004,20 @@ sub request_full_hash {
 	foreach my $info (@prefixes) {
 		push(@lists, $info->{list}) if (! defined first { $_->{threatType} eq $info->{list}->{threatType} && $_->{platformType} eq $info->{list}->{platformType} && $_->{threatEntryType} eq $info->{list}->{threatEntryType} } @lists);
 		$hashes{ trim encode_base64 $info->{prefix} } = 1;
-		
+
 		$threats{ $info->{list}->{threatType} } = 1;
 		$platforms{ $info->{list}->{platformType} } = 1;
 		$threatEntries{ $info->{list}->{threatEntryType} } = 1;
 	}
-	
+
 	# get state for each list
 	$info->{clientStates} = [];
 	foreach my $list (@lists) {
 # 		$self->debug(Dumper $list);
 		push(@{ $info->{clientStates} }, $self->{storage}->get_state(list => $list));
-		
+
 	}
-	
+
 	$info->{threatInfo} = {
 		threatTypes				=> [keys %threats],
 		platformTypes 		=> [keys %platforms],
@@ -1035,22 +1026,22 @@ sub request_full_hash {
 			map { {hash => $_ } } keys %hashes,
 		],
 	};
-	
-	my $response = $self->ua->post($self->{base} . "/fullHashes:find?key=" . $self->{key}, 
+
+	my $response = $self->ua->post($self->{base} . "/fullHashes:find?key=" . $self->{key},
 		"Content-Type" => "application/json",
 		Content => encode_json($info)
 	);
-	
+
 	$self->debug($response->request->as_string);
 	$self->debug($response->as_string, "\n");
-	
+
 	if (! $response->is_success) {
 		$self->error("Full hash request failed\n");
-	
+
 		# TODO
 # 		foreach my $info (keys keys %hashes) {
 # 			my $prefix = $info->{prefix};
-# 	
+#
 # 			my $errors = $self->{storage}->get_full_hash_error(prefix => $prefix);
 # 			if (defined $errors && (
 # 				$errors->{errors} >=2 			# backoff mode
@@ -1067,7 +1058,7 @@ sub request_full_hash {
 		# TODO
 # 		foreach my $prefix (@$prefixes) {
 # 			my $prefix = $info->{prefix};
-# 		
+#
 # 			$self->{storage}->full_hash_ok(prefix => $prefix, timestamp => time());
 # 		}
 	}
@@ -1087,9 +1078,9 @@ sub parse_full_hashes {
 	if ($data eq '') {
 		return ();
 	}
-	
-	
-	
+
+
+
 	my $info = decode_json($data);
 	if (! exists $info->{matches} || scalar @{ $info->{matches} } == 0) {
 		return ();
@@ -1102,25 +1093,25 @@ sub parse_full_hashes {
 			platformType		=> $match->{platformType},
 			threatEntryType	=> $match->{threatEntryType},
 		};
-		
+
 		my $hash = decode_base64($match->{threat}->{hash});
 		my $cache = $match->{cacheDuration};
-		
+
 		my %metadata = ();
 		foreach my $extra (@{ $match->{threatEntryMetadata}->{entries} }) {
 			$metadata{ decode_base64 $extra->{key} } = decode_base64 $extra->{value};
 		}
-		
+
 		push(@hashes, { hash => $hash, cache => $cache, list => $list, metadata => { %metadata } });
 	}
-	
-	# TODO:	
+
+	# TODO:
 	my $wait = $info->{minimumWaitDuration} || 0; # "300.000s",
 	$wait =~ s/[a-z]//i;
-	
+
   my $negativeWait = $info->{negativeCacheDuration} || 0; #"300.000s"
 	$negativeWait =~ s/[a-z]//i;
-	
+
 	return @hashes;
 }
 
@@ -1154,4 +1145,3 @@ at your option, any later version of Perl 5 you may have available.
 
 1;
 __END__
-
