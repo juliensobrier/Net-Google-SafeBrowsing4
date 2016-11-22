@@ -409,7 +409,7 @@ sub lookup {
 	my $all_lists = $self->make_lists(lists => $lists);
 
 	# fix for http:///foo.com (3 ///)
-	$url =~ s/^(https?:\/\/)\/+/$1/;
+	$url =~ s/^(https?:\/\/)\/+/$1/i;
 
 	my $uri = URI->new($url)->canonical;
 	my @hashes = $self->lookup_suffix(lists => $all_lists, url => $uri);
