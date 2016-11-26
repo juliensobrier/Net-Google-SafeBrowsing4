@@ -68,6 +68,9 @@ Optional. Hash reference to map file types to file names. Default:
 		full_hashes => "full_hashes.gsb4"
 	}
 
+=item logger
+
+Optional. Log4Perl compatible object reference. By default this option is unset, making Net::Google::SafeBrowsing4::File silent.
 
 =back
 
@@ -77,7 +80,6 @@ sub new {
 	my ($class, %args) = @_;
 
 	my $self = { # default arguments
-		debug		=> 0,
 		keep_all	=> 0,
 		path 		=> '.',
 		sticky		=> 0,
@@ -143,23 +145,23 @@ sub save {
 
 	# save the information somewhere
 	my $file = path(join("/", $self->{path}, $self->list_to_file($list)));
-	$self->debug("Save hashes to $file");
+	$self->{logger} && $self->{logger}->debug("Save hashes to $file");
 
 	my %data = ('state' => $state, hashes => [@hashes]); # hashes are already stored
 	if (-e $file && !$override) {
 		my $db = retrieve($file);
-		$self->debug("Load $file (save)");
+		$self->{logger} && $self->{logger}->debug("Load $file (save)");
 
-		$self->debug("hashes to remove: ", scalar(@remove));
-		$self->debug("hashes to add: ", scalar(@hashes));
+		$self->{logger} && $self->{logger}->debug("hashes to remove: ", scalar(@remove));
+		$self->{logger} && $self->{logger}->debug("hashes to add: ", scalar(@hashes));
 
-		$self->debug("Number of hashes before removal: ", scalar(@{ $db->{hashes} }));
+		$self->{logger} && $self->{logger}->debug("Number of hashes before removal: ", scalar(@{ $db->{hashes} }));
 		foreach my $index (@remove) {
-			$self->debug("Remove index $index");
+			$self->{logger} && $self->{logger}->debug("Remove index $index");
 			$db->{hashes}->[$index] = '';
 		}
 		$db->{hashes} = [ grep { $_ ne '' } @{ $db->{hashes} } ];
-		$self->debug("Number of hashes after removal: ", scalar(@{ $db->{hashes} }));
+		$self->{logger} && $self->{logger}->debug("Number of hashes after removal: ", scalar(@{ $db->{hashes} }));
 
 		$data{hashes} = [sort { $a cmp $b } (@hashes, @{ $db->{hashes} })];
 	}
@@ -170,7 +172,7 @@ sub save {
 	}
 
 	# return the list of hashes, sorted, from the new storage
-	$self->debug("Number of hashes at end: ", scalar(@{ $data{hashes} }));
+	$self->{logger} && $self->{logger}->debug("Number of hashes at end: ", scalar(@{ $data{hashes} }));
 	return @{ $data{hashes} };
 }
 
@@ -203,7 +205,7 @@ sub next_update {
 		# retrieve information from storage
 		my $file = path(join("/", $self->{path}, $self->{files}->{updates}));
 		$update = retrieve($file);
-		$self->debug("Load $file (reset)");
+		$self->{logger} && $self->{logger}->debug("Load $file (reset)");
 
 		if ($self->{sticky}) {
 			$self->{data}->{ $self->{files}->{updates} } = $update;;
@@ -227,7 +229,7 @@ sub last_update {
 		# retrieve information from storage
 		my $file = path(join("/", $self->{path}, $self->{files}->{updates}));
 		$update = retrieve($file);
-		$self->debug("Load $file (last_udpate)");
+		$self->{logger} && $self->{logger}->debug("Load $file (last_udpate)");
 
 		if ($self->{sticky}) {
 			$self->{data}->{ $self->{files}->{updates} } = $update;
@@ -252,7 +254,7 @@ sub get_state {
 			return "";
 		}
 		else {
-			$self->debug("Load $file (get_state)");
+			$self->{logger} && $self->{logger}->debug("Load $file (get_state)");
 			$update = retrieve($file);
 
 			if ($self->{sticky}) {
@@ -280,7 +282,7 @@ sub updated {
 	}
 	else {
 		# retrieve information from storage
-		$self->debug("Load $file (updated)");
+		$self->{logger} && $self->{logger}->debug("Load $file (updated)");
 		$update = retrieve($file);
 	}
 
@@ -312,7 +314,7 @@ sub update_error {
 	}
 	else {
 		# retrieve information from storage
-		$self->debug("Load $file (update_error)");
+		$self->{logger} && $self->{logger}->debug("Load $file (update_error)");
 		$update = retrieve($file);
 	}
 
@@ -333,7 +335,7 @@ sub get_prefixes {
 	my @hashes = @{ $args{hashes} || [] };
 	my @data = ();
 
-	$self->debug("Number of lists: ", scalar(@lists));
+	$self->{logger} && $self->{logger}->debug("Number of lists: ", scalar(@lists));
 	foreach my $list (@lists) {
 		my $db = { };
 		if ($self->{sticky} && exists($self->{data}->{ $self->list_to_file($list) })) {
@@ -342,11 +344,11 @@ sub get_prefixes {
 		else {
 			my $file = path(join("/", $self->{path}, $self->list_to_file($list)));
 			if (! -e $file) {
-				$self->debug("File $file does not exist");
+				$self->{logger} && $self->{logger}->debug("File $file does not exist");
 				next;
 			}
 
-			$self->debug("Load $file (get_prefixes)");
+			$self->{logger} && $self->{logger}->debug("Load $file (get_prefixes)");
 			$db = retrieve($file);
 
 			if ($self->{sticky}) {
@@ -382,13 +384,13 @@ sub add_full_hashes {
 	foreach my $hash (@hashes) {
 		my $cache = $hash->{cache};
 		$cache =~ s/s//;
-		$self->debug("cache: $cache");
+		$self->{logger} && $self->{logger}->debug("cache: $cache");
 
 		$hash->{expire} = $cache + $timestamp;
 		push(@{ $db->{hashes} }, $hash);
 	}
 
-	$self->debug("Save ", scalar(@{ $db->{hashes} }), " full hashes to $file");
+	$self->{logger} && $self->{logger}->debug("Save ", scalar(@{ $db->{hashes} }), " full hashes to $file");
 	nstore($db, $file) or croak("Cannot save data to $file: $!\n");
 
 	if ($self->{sticky}) {
@@ -414,12 +416,12 @@ sub get_full_hashes {
 			return ();
 		}
 
-		$self->debug("Load $file");
+		$self->{logger} && $self->{logger}->debug("Load $file");
 		$db = retrieve($file);
 	}
 
 	my @hashes = ();
-	$self->debug("Number of full hashes on file: ", scalar(@{ $db->{hashes} }));
+	$self->{logger} && $self->{logger}->debug("Number of full hashes on file: ", scalar(@{ $db->{hashes} }));
 	foreach my $list (@lists) {
 		my $result = first {
 			$_->{hash} eq $hash &&

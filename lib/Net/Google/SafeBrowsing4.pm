@@ -37,13 +37,14 @@ Net::Google::SafeBrowsing4 - Perl extension for the Google Safe Browsing v4 API.
 	my $gsb = Net::Google::SafeBrowsing4->new(
 		key 	=> "my key",
 		storage	=> $storage,
+		logger	=> Log4Perl->get_logger();
 	);
 
 	$gsb->update();
 	my @matches = $gsb->lookup(url => 'http://ianfette.org/');
 
 	if (scalar(@matches) > 0) {
-		print "http://ianfette.org/ is flagged as a dangerous site\n";
+		print("http://ianfette.org/ is flagged as a dangerous site\n");
 	}
 
 	$storage->close();
@@ -119,7 +120,6 @@ Create a Net::Google::SafeBrowsing4 object
 	my $gsb = Net::Google::SafeBrowsing4->new(
 		key		=> "my key",
 		storage	=> Net::Google::SafeBrowsing4::File->new(path => '.'),
-		debug	=> 0,
 		lists	=> ["*/ANY_PLATFORM/URL"],
 	);
 
@@ -143,19 +143,13 @@ Required. Object which handles the storage for the Google Safe Browsing database
 
 Optional. The Google Safe Browsing lists to handle. By default, handles all lists.
 
-=item debug
+=item logger
 
-Optional. Set to 1 to enable debugging. 0 (disabled) by default.
-
-The debug output maybe quite large and can slow down significantly the update and lookup functions.
-
-=item errors
-
-Optional. Set to 1 to show errors to STDOUT. 0 (disabled by default).
+Optional. Log4Perl compatible object reference. By default this option is unset, making Net::Google::SafeBrowsing4 silent.
 
 =item perf
 
-Optional. Set to 1 to show performance information.
+Optional. Set to 1 to enable performance information logging. Needs a I<logger>, performance information will be logged on DEBUG level.
 
 =item version
 
@@ -182,10 +176,9 @@ sub new {
 		all_lists	=> [],
 		key			=> '',
 		version		=> '4',
-		debug		=> 0,
-		errors		=> 0,
 		last_error	=> '',
 		perf		=> 0,
+		logger		=> undef,
 
 		http_timeout => 60,
 		http_compression => '' . HTTP::Message->decodable(),
@@ -197,7 +190,7 @@ sub new {
 		use Net::Google::SafeBrowsing4::Storage;
 		$self->{storage} = Net::Google::SafeBrowsing4::Storage->new();
 	}
-	if (ref $self->{list} ne 'ARRAY') {
+	if (ref($self->{list}) ne 'ARRAY') {
 		$self->{list} = [$self->{list}];
 	}
 
@@ -249,12 +242,12 @@ sub update {
 	# TODO: some lists may have been updated , others not. Update time has to be by list
 	my $time = $self->{storage}->next_update();
 	if ($time > time() && $force == 0) {
-		$self->debug("Too early to update the local storage\n");
+		$self->{logger} && $self->{logger}->debug("Too early to update the local storage");
 
 		return NO_UPDATE;
 	}
 	else {
-		$self->debug("time for update: $time / ", time());
+		$self->{logger} && $self->{logger}->debug("time for update: $time / ", time());
 	}
 
 	my $all_lists = $self->make_lists(lists => $lists);
@@ -274,11 +267,11 @@ sub update {
 		Content => encode_json($info)
 	);
 
-	$self->debug($response->request()->as_string());
-	$self->debug($response->as_string(), "\n");
+	$self->{logger} && $self->{logger}->debug($response->request()->as_string());
+	$self->{logger} && $self->{logger}->debug($response->as_string());
 
 	if (! $response->is_success()) {
-		$self->error("Update request failed\n");
+		$self->{logger} && $self->{logger}->error("Update request failed");
 
 		$self->update_error('time' => time());
 
@@ -330,7 +323,7 @@ sub update {
 
 			my $check = trim encode_base64 sha256(@hashes);
 			if ($check ne $list->{checksum}->{sha256}) {
-				$self->error("$threat/$platform/$threatEntry update error: checksum do not match: ", $check, " / ", $list->{checksum}->{sha256});
+				$self->{logger} && $self->{logger}->error("$threat/$platform/$threatEntry update error: checksum do not match: ", $check, " / ", $list->{checksum}->{sha256});
 				$self->{storage}->reset(
 					list => {
 						threatType 			=> $list->{threatType},
@@ -342,7 +335,7 @@ sub update {
 				$result = DATABASE_RESET;
 			}
 			else {
-				$self->debug("$threat/$platform/$threatEntry update: checksum match");
+				$self->{logger} && $self->{logger}->debug("$threat/$platform/$threatEntry update: checksum match");
 			}
 		}
 
@@ -449,8 +442,8 @@ sub get_lists {
 		"Content-Type" => "application/json"
 	);
 
-	$self->debug($response->request->as_string);
-	$self->debug($response->as_string, "\n");
+	$self->{logger} && $self->{logger}->debug($response->request->as_string());
+	$self->{logger} && $self->{logger}->debug($response->as_string());
 
 	my $info = decode_json($response->decoded_content(encoding => 'none'));
 	return $info->{threatLists};
@@ -476,20 +469,20 @@ sub lookup_suffix {
 	# Calculate prefixes
 	my $start = time();
 	my @full_hashes = $self->full_hashes($url);
-	$self->perf("Full hashes from URL: ", time() - $start,  "s ");
+	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hashes from URL: ", time() - $start,  "s ");
+
 
  	# Local lookup
  	$start = time();
  	my @prefixes = $self->{storage}->get_prefixes(hashes => [@full_hashes], lists => $lists);
- 	$self->perf("Local lookup: ", time() - $start,  "s ");
+	$self->{perf} && $self->{logger} && $self->{logger}->debug("Local lookup: ", time() - $start,  "s ");
 
 	if (scalar(@prefixes) == 0) {
-		$self->debug("No hit in local lookup\n");
+		$self->{logger} && $self->{logger}->debug("No hit in local lookup");
 		return ();
 	}
 
-	$self->debug("Found ", scalar(@prefixes), " prefix(s) in local database\n");
-# 	$self->debug(Dumper(\@prefixes));
+	$self->{logger} && $self->{logger}->debug("Found ", scalar(@prefixes), " prefix(s) in local database");
 
 	# get stored full hashes
 	$start = time();
@@ -497,18 +490,18 @@ sub lookup_suffix {
 		my @hashes = $self->{storage}->get_full_hashes(hash => $hash, lists => $lists);
 
 		if (scalar(@hashes) > 0) {
-			$self->debug("Full hashes found locally: ", scalar(@hashes), "\n");
+			$self->{logger} && $self->{logger}->debug("Full hashes found locally: " . scalar(@hashes));
 			return (@hashes);
 		}
 	}
-	$self->perf("Stored hashes lookup: ", time() - $start,  "s ");
+	$self->{perf} && $self->{logger} && $self->{logger}->debug("Stored hashes lookup: ", time() - $start,  "s ");
 
 
 	# ask for new hashes
 	# TODO: make sure we don't keep asking for the same over and over
 	$start = time();
 	my @hashes = $self->request_full_hash(prefixes => [ @prefixes ]);
-	$self->perf("Full hash request: ", time() - $start,  "s ");
+	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hash request: ", time() - $start,  "s ");
 
 	# Make sure the full hash match one of the full hashes for a give URL
 	my @results = ();
@@ -517,11 +510,11 @@ sub lookup_suffix {
 		my @matches = grep { $_->{hash} eq $full_hash } @hashes;
 		push(@results, @matches) if (scalar(@matches) > 0);
 	}
-	$self->perf("Full hash check: ", time() - $start,  "s ");
+	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hash check: ", time() - $start,  "s ");
 
 	$start = time();
 	$self->{storage}->add_full_hashes(hashes => [@results], timestamp => time());
-	$self->perf("Save full hashes: ", time() - $start,  "s ");
+	$self->{perf} && $self->{logger} && $self->{logger}->debug("Save full hashes: ", time() - $start,  "s ");
 
 	return @results;
 }
@@ -548,7 +541,7 @@ sub make_lists {
 	foreach my $list (@lists) {
 		$list = uc(trim($list));
 		if ($list !~ /^[*_A-Z]+\/[*_A-Z]+\/[*_A-Z]+$/) {
-			$self->error("List is invalid format: $list - It must be in the form MALWARE/WINDOWS/URL or MALWARE/*/*");
+			$self->{logger} && $self->{logger}->error("List is invalid format: $list - It must be in the form MALWARE/WINDOWS/URL or MALWARE/*/*");
 			next;
 		}
 		if ($list =~ /\*/) {
@@ -688,45 +681,6 @@ sub ascii_to_hex {
 	return $hex;
 }
 
-=head2 debug()
-
-Print debug output.
-
-=cut
-
-sub debug {
-	my ($self, @messages) = @_;
-
-	print(join('', @messages, "\n")) if ($self->{debug} > 0);
-}
-
-
-=head2 error()
-
-Print error message.
-
-=cut
-
-sub error {
-	my ($self, @messages) = @_;
-
-	print("ERROR - ", join('', @messages, "\n")) if ($self->{debug} > 0 || $self->{errors} > 0);
-	$self->{last_error} = join('', @messages);
-}
-
-
-=head2 perf()
-
-Print performance message.
-
-=cut
-
-sub perf {
-	my ($self, @messages) = @_;
-
-	print(join('', @messages, "\n")) if ($self->{perf} > 0);
-}
-
 
 =head2 canonical_domain()
 
@@ -842,7 +796,6 @@ sub canonical_uri {
 	while ($url =~ s/^([^?]+)[\r\t\n]/$1/sgi) { }
 
 	my $uri = URI->new($url)->canonical(); # does not deal with directory traversing
-# 	$self->debug("0. $url => " . $uri->as_string . "\n");
 
 	if (!$uri->scheme()) {
 		$uri = URI->new("http://$url")->canonical();
@@ -859,15 +812,12 @@ sub canonical_uri {
 	$escape =~ s/#$//;
 
 	# canonial does not handle ../
-# 	$self->debug("\t$escape\n");
 	while($escape =~ s/([^\/])\/([^\/]+)\/\.\.([\/?].*)$/$1$3/gi) {  }
 	while($escape =~ s/([^\/])\/([^\/]+)\/\.\.$/$1/gi) {  }
 
 	# May have removed ending /
-# 	$self->debug("\t$escape\n");
 	$escape .= "/" if ($escape =~ /^[a-z]+:\/\/[^\/\?]+$/);
 	$escape =~ s/^([a-z]+:\/\/[^\/]+)(\?.*)$/$1\/$2/gi;
-# 	$self->debug("\t$escape\n");
 
 	# other weird case if domain = digits only, try to translate it to IP address
 	my $domain = URI->new($escape)->host();
@@ -884,21 +834,14 @@ sub canonical_uri {
 		$escape = $uri->as_string();
 	}
 
-# 	$self->debug("1. $url => $escape\n");
-
 	# Try to escape the path again
 	$url = $escape;
 	while (($escape = URI::Escape::uri_unescape($url)) ne $escape) { # wrong for %23 -> #
 		$url = $escape;
 	}
-#	while (($escape = URI->new($url)->canonical()->as_string()) ne $escape) { # break more unit tests than previous
-#		$url = $escape;
-#	}
 
 	# Fix for %23 -> #
 	while($escape =~ s/#/%23/sgi) { }
-
-# 	$self->debug("2. $url => $escape\n");
 
 	# Fix over escaping
 	while($escape =~ s/^([^?]+)%%(%.*)$/$1%25%25$2/sgi) { }
@@ -907,7 +850,6 @@ sub canonical_uri {
 	# URI has issues with % in domains, it gets the host wrong
 
 	# 1. fix the host
-# 	$self->debug("Domain: " . URI->new($escape)->host . "\n");
 	my $exception = 0;
 	while ($escape =~ /^[a-z]+:\/\/[^\/]*([^a-z0-9%_.-\/:])[^\/]*(\/.*)$/) {
 		my $source = $1;
@@ -923,7 +865,6 @@ sub canonical_uri {
 		my $source = $1;
 		my $target = URI::Escape::uri_unescape($source);
 
-# 		print "Source: $source\n";
 		while ($target ne URI::Escape::uri_unescape($target)) {
 			$target = URI::Escape::uri_unescape($target);
 		}
@@ -937,9 +878,6 @@ sub canonical_uri {
 
 		while ($escape =~ s/%([^0-9a-f]|.[^0-9a-f])/%25$1/sgi) { }
 	}
-
-# 	$self->debug("$url => $escape\n");
-# 	$self->debug(URI->new($escape)->as_string . "\n");
 
 	return URI->new($escape);
 }
@@ -957,9 +895,8 @@ sub full_hashes {
 	my @hashes = ();
 
 	foreach my $url (@urls) {
-#		$self->debug("$url\n");
 		push(@hashes, sha256($url));
-		$self->debug("$url " . $self->hex_to_ascii(sha256($url)) . "\n");
+		$self->{logger} && $self->{logger}->debug("$url " . $self->hex_to_ascii(sha256($url)));
 	}
 
 	return @hashes;
@@ -1007,7 +944,6 @@ sub request_full_hash {
 	# get state for each list
 	$info->{clientStates} = [];
 	foreach my $list (@lists) {
-#		$self->debug(Dumper $list);
 		push(@{ $info->{clientStates} }, $self->{storage}->get_state(list => $list));
 
 	}
@@ -1025,11 +961,11 @@ sub request_full_hash {
 		Content => encode_json($info)
 	);
 
-	$self->debug($response->request->as_string());
-	$self->debug($response->as_string(), "\n");
+	$self->{logger} && $self->{logger}->debug($response->request->as_string());
+	$self->{logger} && $self->{logger}->debug($response->as_string());
 
 	if (! $response->is_success()) {
-		$self->error("Full hash request failed\n");
+		$self->{logger} && $self->{logger}->error("Full hash request failed");
 
 		# TODO
 #		foreach my $info (keys keys %hashes) {
@@ -1046,7 +982,7 @@ sub request_full_hash {
 		return ();
 	}
 	else {
-		$self->debug("Full hash request OK\n");
+		$self->{logger} && $self->{logger}->debug("Full hash request OK");
 
 		# TODO
 #		foreach my $prefix (@$prefixes) {
