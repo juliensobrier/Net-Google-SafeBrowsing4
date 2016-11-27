@@ -35,6 +35,7 @@ This module requires these other modules and libraries:
   List::Util
   LWP::UserAgent
   MIME::Base64
+  Net::IP::Lite
   Path::Tiny
   Socket
   Storable
