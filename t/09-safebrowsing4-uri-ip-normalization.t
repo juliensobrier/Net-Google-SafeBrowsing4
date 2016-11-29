@@ -12,11 +12,20 @@ use Net::Google::SafeBrowsing4::URI;
 
 my @invalid_uris = (
 	# Single number IPv4 (decimal/octal/hexadecimal) out of range
-	#'http://4294967296/',
-	#'http://00000040000000000/',
-	#'http://0x100000000/',
+	'http://4294967296/',
+	'http://00000040000000000/',
+	'http://0x100000000/',
 	# Dotted-decimal IPv4 with too much elements:
-	#'http://195.56.65.250.1'
+	'http://195.56.65.250.1',
+	# One segment out of bounds
+	'195.56.65.256',
+	'195.0x100.65.250',
+	'0310.0x100.65.250',
+	'195.56.65536',
+	# Multibyte first segment is not accepted by major Browsers
+	'49976.65.250',
+	# Multibyte middle segment is not accepted by major Browsers
+	'195.14401.250',
 );
 
 my %uris = (
