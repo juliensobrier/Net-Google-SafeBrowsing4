@@ -107,6 +107,8 @@ sub _normalize {
 		return undef;
 	}
 
+	# Remove userinfo
+	$uri_obj->userinfo(undef);
 	# Remove port
 	$uri_obj->port(undef);
 	# Remove Fragment

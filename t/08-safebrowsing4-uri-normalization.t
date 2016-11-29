@@ -65,6 +65,14 @@ my %uris = (
 	'http://...google...com.../' => 'http://google.com/',
 	'http://google.com./' => 'http://google.com/',
 	'http://.google..com./' => 'http://google.com/',
+	# Remove username
+	'http://username@google.com/' => 'http://google.com/',
+	# Remove username-password pair
+	'http://username:passworten@google.com/' => 'http://google.com/',
+	# Normalization works on email-looking HTTP address
+	'username@google.com' => 'http://google.com/',
+	# Removes username even with more @ marks
+	'http://user@@name@google.com/' => 'http://google.com/',
 );
 
 foreach my $uri (sort(@invalid_uris)) {
