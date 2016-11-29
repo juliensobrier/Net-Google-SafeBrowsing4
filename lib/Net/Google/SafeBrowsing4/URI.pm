@@ -6,16 +6,18 @@ use warnings;
 use Net::IP::Lite qw();
 use URI;
 
+=encoding utf-8
+
 =head1 NAME
 
-Net::Google::SafeBrowsing4::URI - Class for URI management for the Google::SafeBrowsing (version 4) API.
+Net::Google::SafeBrowsing4::URI - URI management Class for the Google SafeBrowsing (version 4) API.
 
 
 =head1 SYNOPSIS
 
 	use Net::Google::SafeBrowsing4::URI;
 
-	my $gsb_uri = Net::Google::SafeBrowsing4::URI->new('http://my.example.site:80/path/to/file.html?query=param#fraction');
+	my $gsb_uri = Net::Google::SafeBrowsing4::URI->new('http://my.example.site:80/path/to/file.html?query=param#fragment');
 	my @uris = $gsb_uri->canonicalize();
 
 =head1 DESCRIPTION
@@ -24,9 +26,13 @@ Net::Google::SafeBrowsing4::URI takes care of normalizing URLs, extracting suffi
 
 =head1 METHODS
 
+=over
+
 =item new
 
-	my $gsb_uri = Net::Google::SafeBrowsing4::URI->new('http://my.example.site:80/path/to/file.html?query=param#fraction');
+=back
+
+	my $gsb_uri = Net::Google::SafeBrowsing4::URI->new('http://my.example.site:80/path/to/file.html?query=param#fragment');
 
 =over
 
@@ -34,7 +40,11 @@ Initializes the object.
 
 Arguments:
 
+=over
+
 =item $uri The URL to parse
+
+=back
 
 =back
 
@@ -57,9 +67,9 @@ sub new {
 	return $self->_normalize() ? $self : undef;
 }
 
-=item as_string
-
 =over
+
+=item as_string
 
 Returns the normalized URI as string.
 
@@ -75,9 +85,9 @@ sub as_string {
 
 =head1 PRIVATE METHODS
 
-=item _normalize
-
 =over
+
+=item _normalize
 
 Parses and normalizes the URI.
 
@@ -157,11 +167,21 @@ sub _normalize {
 
 =head1 PRIVATE FUNCTIONS
 
+=over
+
 =item _normalize_ip
+
+Function for recognising various IPv4 formatted addresses and convert them to I<dotted-decimal-quad> format (111.11.1.1)
+
+Arguments:
 
 =over
 
-Function for recognising various IPv4 formatted addresses and convert them to I<dotted-decimal-quad> format (111.11.1.1)
+=item $host
+
+Hostname to parse as IP Address
+
+=back
 
 =back
 
@@ -205,7 +225,11 @@ sub _normalize_ip {
 	return $host;
 }
 
+=over
+
 =item _parse_ipv4_segment
+
+=back
 
 	my $decimal = _parse_ipv4_part($segment, $bits)
 
@@ -215,6 +239,8 @@ Transforms one IPv4 segment to decimal with range checking.
 
 Arguments:
 
+=over
+
 =item $segment
 
 Decimal/octal/hexadecimal value to parse
@@ -222,6 +248,10 @@ Decimal/octal/hexadecimal value to parse
 =item $bits
 
 Bit length for range checking
+
+=back
+
+=back
 
 =cut
 
@@ -253,9 +283,13 @@ sub _parse_ipv4_segment {
 
 Some URI normalizatuion cases are still missing:
 
+=over
+
 =item Highbit characters in hostname are punycoded, not percent encoded.
 
 Google's GO Client percent-escapes based on the hostname is a valid unicode string or not
+
+=back
 
 =head1 AUTHORS
 
