@@ -5,18 +5,18 @@
 use strict;
 use warnings;
 
-use Test::Exception;
 use Test::More 0.92 qw(no_plan);
 
 use Net::Google::SafeBrowsing4::URI;
 
 
 my @invalid_uris = (
+	# Empty, null host is not valid
+	undef,
+	'',
 	# Only http and https scheme is supported by Googe::SafeBrowsing4 x2
 	'mailto:my@email.site',
 	"shihtzu://google.com",
-	# Empty host is not valid
-	'',
 	"http://:80/index.html",
 	# Single number IPv4 (decimal/octal/hexadecimal) out of range
 	#'http://4294967296/',
@@ -75,9 +75,9 @@ my %uris = (
 	'http://user@@name@google.com/' => 'http://google.com/',
 );
 
-foreach my $uri (sort(@invalid_uris)) {
+foreach my $uri (sort { ($a || '') cmp ($b || '') } @invalid_uris) {
 	my $gsb_uri = Net::Google::SafeBrowsing4::URI->new($uri);
-	is($gsb_uri, undef, "Invalid URI '". $uri ."'  detected");
+	is($gsb_uri, undef, "Invalid URI '". ($uri || "(undef)") ."'  detected");
 }
 
 foreach my $uri (sort(keys(%uris))) {

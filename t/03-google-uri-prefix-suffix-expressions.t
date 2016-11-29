@@ -1,4 +1,4 @@
-#!perl
+#!/usr/bin/perl
 
 use strict;
 use warnings;
@@ -10,7 +10,7 @@ use Net::Google::SafeBrowsing4;
 
 # URI suffix/prefix expressions extraction tests from Google's API webpage:
 # https://developers.google.com/safe-browsing/v4/urls-hashing#suffixprefix-expressions
-my %urls = (
+my %uris = (
 	'http://a.b.c/1/2.html?param=1' => { map { $_ => 1 } qw(
 		a.b.c/1/2.html?param=1
 		a.b.c/1/2.html
@@ -41,12 +41,12 @@ my %urls = (
 
 my $gsb = Net::Google::SafeBrowsing4->new();
 
-foreach my $url (keys(%urls)) {
-	my @expressions = $gsb->canonical($url);
-	is(scalar(@expressions), scalar(keys(%{$urls{$url}})), "Number of possible prefix/suffix expressions for '". $url ."'");
+foreach my $uri (keys(%uris)) {
+	my @expressions = $gsb->canonical($uri);
+	is(scalar(@expressions), scalar(keys(%{$uris{$uri}})), "Number of possible prefix/suffix expressions for '". $uri ."'");
 	foreach my $expression (@expressions) {
-		ok(exists($urls{$url}->{$expression}), "prefix/suffix expression '". $expression ."' found");
-		delete($urls{$url}->{$expression});
+		ok(exists($uris{$uri}->{$expression}), "prefix/suffix expression '". $expression ."' found");
+		delete($uris{$uri}->{$expression});
 	}
-	is(scalar(keys(%{$urls{$url}})), 0, "All prefix/suffix expressions found");
+	is(scalar(keys(%{$uris{$uri}})), 0, "All prefix/suffix expressions found");
 }

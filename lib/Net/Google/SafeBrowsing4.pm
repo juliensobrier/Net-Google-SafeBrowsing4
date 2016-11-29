@@ -4,25 +4,23 @@ use strict;
 use warnings;
 
 use Carp;
-use Data::Dumper;
 use Digest::SHA qw(sha256);
 use Exporter qw(import);
 use HTTP::Message;
-use IO::Socket::SSL qw(inet4);
 use JSON::XS;
 use List::Util qw(first);
 use LWP::UserAgent;
 use MIME::Base64;
-use Socket qw();
 use String::HexConvert;
 use Text::Trim;
 use Time::HiRes qw(time);
 use URI;
-use URI::Escape qw();
+
+use Net::Google::SafeBrowsing4::URI;
 
 our @EXPORT = qw(DATABASE_RESET INTERNAL_ERROR SERVER_ERROR NO_UPDATE NO_DATA SUCCESSFUL);
 
-our $VERSION = '0.1';
+our $VERSION = '0.2';
 
 =head1 NAME
 
@@ -397,15 +395,11 @@ Required. URL to lookup.
 sub lookup {
 	my ($self, %args) = @_;
 	my $lists = $args{lists} || $self->{lists} || [];
-	my $url = $args{url} || return ();
+	my $url = Net::Google::SafeBrowsing4::URI->new($args{url}) || return ();
 
 	my $all_lists = $self->make_lists(lists => $lists);
 
-	# fix for http:///foo.com (3 ///)
-	$url =~ s/^(https?:\/\/)\/+/$1/i;
-
-	my $uri = URI->new($url)->canonical();
-	my @hashes = $self->lookup_suffix(lists => $all_lists, url => $uri);
+	my @hashes = $self->lookup_suffix(lists => $all_lists, url => $url->as_string());
 	return @hashes;
 }
 
@@ -764,8 +758,7 @@ sub canonical {
 
 	my @urls = ();
 
-#	my $uri = URI->new($url)->canonical();
-	my $uri = $self->canonical_uri($url);
+	my $uri = URI->new($url);
 	my @domains = $self->canonical_domain($uri->host());
 	my @paths = $self->canonical_path($uri->path_query());
 
@@ -778,109 +771,6 @@ sub canonical {
 	return @urls;
 }
 
-
-=head2 canonical_uri()
-
-Create a canonical URI.
-
-NOTE: URI cannot handle all the test cases provided by Google. This method is a hack to pass most of the test. A few tests are still failing. The proper way to handle URL canonicalization according to Google would be to create a new module to handle URLs. However, I believe most real-life cases are handled correctly by this function.
-
-=cut
-
-sub canonical_uri {
-	my ($self, $url) = @_;
-
-	$url = trim($url);
-
-	# Special case for \t \r \n
-	while ($url =~ s/^([^?]+)[\r\t\n]/$1/sgi) { }
-
-	my $uri = URI->new($url)->canonical(); # does not deal with directory traversing
-
-	if (!$uri->scheme()) {
-		$uri = URI->new("http://$url")->canonical();
-	}
-	$uri->fragment('');
-
-	my $escape = $uri->as_string();
-
-	# Reduce double // to single / in path
-	while ($escape =~ s/^([a-z]+:\/\/[^?]+)\/\//$1\//sgi) { }
-
-
-	# Remove empty fragment
-	$escape =~ s/#$//;
-
-	# canonial does not handle ../
-	while($escape =~ s/([^\/])\/([^\/]+)\/\.\.([\/?].*)$/$1$3/gi) {  }
-	while($escape =~ s/([^\/])\/([^\/]+)\/\.\.$/$1/gi) {  }
-
-	# May have removed ending /
-	$escape .= "/" if ($escape =~ /^[a-z]+:\/\/[^\/\?]+$/);
-	$escape =~ s/^([a-z]+:\/\/[^\/]+)(\?.*)$/$1\/$2/gi;
-
-	# other weird case if domain = digits only, try to translate it to IP address
-	my $domain = URI->new($escape)->host();
-	if ($domain =~/^\d+$/) {
-		my $ip = Socket::inet_ntoa(Socket::inet_aton($domain));
-
-		$uri = URI->new($escape);
-		$uri->host($ip);
-
-		$escape = $uri->as_string();
-	} elsif ($domain =~ s/\.+$//) {
-		$uri = URI->new($escape);
-		$uri->host($domain);
-		$escape = $uri->as_string();
-	}
-
-	# Try to escape the path again
-	$url = $escape;
-	while (($escape = URI::Escape::uri_unescape($url)) ne $escape) { # wrong for %23 -> #
-		$url = $escape;
-	}
-
-	# Fix for %23 -> #
-	while($escape =~ s/#/%23/sgi) { }
-
-	# Fix over escaping
-	while($escape =~ s/^([^?]+)%%(%.*)$/$1%25%25$2/sgi) { }
-	while($escape =~ s/^([^?]+)%%/$1%25%25/sgi) { }
-
-	# URI has issues with % in domains, it gets the host wrong
-
-	# 1. fix the host
-	my $exception = 0;
-	while ($escape =~ /^[a-z]+:\/\/[^\/]*([^a-z0-9%_.-\/:])[^\/]*(\/.*)$/) {
-		my $source = $1;
-		my $target = sprintf("%02x", ord($source));
-
-		$escape =~ s/^([a-z]+:\/\/[^\/]*)\Q$source\E/$1%\Q$target\E/;
-
-		$exception = 1;
-	}
-
-	# 2. need to parse the path again
-	if ($exception && $escape =~ /^[a-z]+:\/\/[^\/]+\/(.+)/) {
-		my $source = $1;
-		my $target = URI::Escape::uri_unescape($source);
-
-		while ($target ne URI::Escape::uri_unescape($target)) {
-			$target = URI::Escape::uri_unescape($target);
-		}
-
-
-		$escape =~ s/\/\Q$source\E/\/$target/;
-
-		while ($escape =~ s/#/%23/sgi) { } # fragement has been removed earlier
-		while ($escape =~ s/^([a-z]+:\/\/[^\/]+\/.*)%5e/$1\&/sgi) { } # not in the host name
-#		while ($escape =~ s/%5e/&/sgi) { }
-
-		while ($escape =~ s/%([^0-9a-f]|.[^0-9a-f])/%25$1/sgi) { }
-	}
-
-	return URI->new($escape);
-}
 
 =head2 full_hashes()
 

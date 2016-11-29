@@ -1,4 +1,6 @@
 Revision history for Perl extension Net::Google::SafeBrowsing4.
 
-0.1  Sun September 11 19:30:37 2015
+0.2  Tue November 29 21:12:37 2016
+	- URI normalization overhaul
+0.1  Sat October 08 14:52:44 2016
 	- initial version

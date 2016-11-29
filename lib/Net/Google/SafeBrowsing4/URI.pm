@@ -4,7 +4,6 @@ use strict;
 use warnings;
 
 use Net::IP::Lite qw();
-use Socket qw(inet_ntoa);
 use URI;
 
 =head1 NAME
@@ -45,8 +44,8 @@ sub new {
 	my $class = shift;
 	my @args = @_;
 
-	if (scalar(@args) == 0) {
-		die("Missing parameters: URI");
+	if (!scalar(@args) || !$args[0]) {
+		return undef;
 	}
 
 	my $self = {
@@ -134,9 +133,9 @@ sub _normalize {
 
 	my $modified_path = $uri_obj->path();
 	# Eliminate current directory /./ parts
-	$modified_path =~ s/\/\.(?:\/|$)/\//sg;
+	while ($modified_path =~ s/\/\.(?:\/|$)/\//sg) {};
 	# Eliminate parent directory /something/./ parts
-	$modified_path =~ s/\/[^\/]+\/\.\.(?:\/|$)/\//sg;
+	while ($modified_path =~ s/\/[^\/]+\/\.\.(?:\/|$)/\//sg) {};
 	# Eliminate double // slashes from path
 	$modified_path =~ s/\/\/+/\//sg;
 	$uri_obj->path($modified_path);
@@ -254,20 +253,18 @@ sub _parse_ipv4_segment {
 
 Some URI normalizatuion cases are still missing:
 
-=item Caret (^) is turned into %5E.
-
 =item Highbit characters in hostname are punycoded, not percent encoded.
 
-I<This should be the right case, but Google's tests suggest otherwise - need to confirm.>
+Google's GO Client percent-escapes based on the hostname is a valid unicode string or not
 
 =head1 AUTHORS
 
-Julien Sobrier, E<lt>julien@sobrier.netE<gt>,
 Tamás Fehérvári, E<lt>geever@users.sourceforge.net<gt>
+Julien Sobrier, E<lt>julien@sobrier.netE<gt>,
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2016 by Julien Sobrier
+Copyright (C) 2016 by Julien Sobrier, Tamás Fehérvári
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.8 or,

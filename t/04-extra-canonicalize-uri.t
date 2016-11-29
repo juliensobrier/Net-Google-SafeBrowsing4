@@ -5,11 +5,11 @@ use warnings;
 
 use Test::More qw(no_plan);
 
-use Net::Google::SafeBrowsing4;
+use Net::Google::SafeBrowsing4::URI;
 
 
 # Extra URI Canonicalization tests
-my %urls = (
+my %uris = (
 	'http://www.google.com/a/../b/../c' => 'http://www.google.com/c',
 	'http://www.google.com/a/../b/..' => 'http://www.google.com/',
 	'http://www.google.com/a/../b/..?foo' => 'http://www.google.com/?foo',
@@ -19,9 +19,8 @@ my %urls = (
 	'http://1/index.html' => 'http://0.0.0.1/index.html'
 );
 
-
-my $gsb = Net::Google::SafeBrowsing4->new();
-
-foreach my $uri (keys(%urls)) {
-	is( $gsb->canonical_uri($uri), $urls{$uri}, "Canonicalization of URI '". $uri ."'");
+foreach my $uri (sort(keys(%uris))) {
+	my $gsb_uri = Net::Google::SafeBrowsing4::URI->new($uri);
+	ok($gsb_uri, "URI parsed: ". $uri);
+	is($gsb_uri->as_string(), $uris{$uri}, "Normalize URI '". $uri ."'  to '". $uris{$uri} ."' (got: '". $gsb_uri->as_string() ."')");
 }

@@ -8,7 +8,7 @@ use Test::More qw(no_plan);
 use Net::Google::SafeBrowsing4;
 
 
-my %urls = (
+my %uris = (
 	'http://www1.rapidsoftclearon.net/' =>  { map { $_ => 1 } qw(
 		www1.rapidsoftclearon.net/
 		rapidsoftclearon.net/
@@ -18,12 +18,12 @@ my %urls = (
 
 my $gsb = Net::Google::SafeBrowsing4->new();
 
-foreach my $url (keys(%urls)) {
-	my @expressions = $gsb->canonical($url);
-	is(scalar(@expressions), scalar(keys(%{$urls{$url}})), "Number of possible prefix/suffix expressions for '". $url ."'");
+foreach my $uri (keys(%uris)) {
+	my @expressions = $gsb->canonical($uri);
+	is(scalar(@expressions), scalar(keys(%{$uris{$uri}})), "Number of possible prefix/suffix expressions for '". $uri ."'");
 	foreach my $expression (@expressions) {
-		ok(exists($urls{$url}->{$expression}), "prefix/suffix expression '". $expression ."' found");
-		delete($urls{$url}->{$expression});
+		ok(exists($uris{$uri}->{$expression}), "prefix/suffix expression '". $expression ."' found");
+		delete($uris{$uri}->{$expression});
 	}
-	is(scalar(keys(%{$urls{$url}})), 0, "All prefix/suffix expressions found");
+	is(scalar(keys(%{$uris{$uri}})), 0, "All prefix/suffix expressions found");
 }

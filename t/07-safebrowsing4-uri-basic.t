@@ -6,7 +6,6 @@
 use strict;
 use warnings;
 
-use Test::Exception;
 use Test::More 0.92 qw(no_plan);
 
 BEGIN {
@@ -17,12 +16,10 @@ require_ok('Net::Google::SafeBrowsing4::URI');
 
 my $uri = 'https://google.com/';
 my $gsb_uri;
-$gsb_uri = new_ok('Net::Google::SafeBrowsing4::URI' => [$uri], qw(Net::Google::SafeBrowsing4::URI URI));
+$gsb_uri = new_ok('Net::Google::SafeBrowsing4::URI' => [$uri], qw(Net::Google::SafeBrowsing4::URI));
 can_ok($gsb_uri, qw{
 	as_string
 });
-
-throws_ok { $gsb_uri = Net::Google::SafeBrowsing4::URI->new() } qr/Missing parameter/i, "Net::Google::SafeBrowsing4::URI needs URI as parameter";
 
 SKIP: {
 	eval {

@@ -5,7 +5,6 @@
 use strict;
 use warnings;
 
-use Test::Exception;
 use Test::More 0.92 qw(no_plan);
 
 use Net::Google::SafeBrowsing4::URI;

@@ -27,24 +27,22 @@ DEPENDENCIES
 This module requires these other modules and libraries:
 
   constant
-  Data::Dumper
+  Carp
   Digest::SHA
+  Exporter
   HTTP::Message
-  IO::Socket::SSL
   JSON::XS
   List::Util
   LWP::UserAgent
   MIME::Base64
   Net::IP::Lite
   Path::Tiny
-  Socket
   Storable
   String::HexConvert
   Test::More
   Text::Trim
   Time::HiRes
   URI
-  URI::Escape
 
 
 COPYRIGHT AND LICENCE
