@@ -3,7 +3,7 @@ Net-Google-SafeBrowsing4
 
 Net::Google::SafeBrowsing4 implements the Google Safe Browsing v4 Local API
 
-The library passes most of the unit tests listed in the API documentation. 
+The library passes most of the unit tests listed in the API documentation.
 
 The Google Safe Browsing database must be stored and managed locally.
 Net::Google::SafeBrowsing4::File uses files as the storage back-en.
@@ -26,18 +26,23 @@ DEPENDENCIES
 
 This module requires these other modules and libraries:
 
-  LWP::UserAgent
-  URI
-  Digest::SHA
-  HTTP::Message
-  List::Util
   constant
+  Carp
+  Digest::SHA
+  Exporter
+  HTTP::Message
+  JSON::XS
+  List::Util
+  LWP::UserAgent
+  MIME::Base64
+  Net::IP::Lite
+  Path::Tiny
+  Storable
+  String::HexConvert
   Test::More
   Text::Trim
-  Digest::SHA
-  MIME::Base64
-  String::HexConvert
-  IO::Socket::SSL
+  Time::HiRes
+  URI
 
 
 COPYRIGHT AND LICENCE
@@ -47,6 +52,3 @@ Copyright (C) 2016 by Julien Sobrier
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.8 or,
 at your option, any later version of Perl 5 you may have available.
-
-
-

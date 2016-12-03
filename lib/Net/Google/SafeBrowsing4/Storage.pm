@@ -36,9 +36,9 @@ This module cannot be used on its own as it does not actually store anything. Al
 
 =head2 new()
 
-  Create a Net::Google::SafeBrowsing4::Storage object
+	Create a Net::Google::SafeBrowsing4::Storage object
 
-  my $storage	=> Net::Google::SafeBrowsing4::Storage->new();
+	my $storage => Net::Google::SafeBrowsing4::Storage->new();
 
 =cut
 
@@ -49,8 +49,8 @@ sub new {
 		%args,
 	};
 
-	bless $self, $class or croak "Can't bless $class: $!";
-    return $self;
+	bless($self, $class) or croak("Can't bless $class: $!");
+	return $self;
 }
 
 =head1 PUBLIC FUNCTIONS
@@ -76,7 +76,7 @@ Arguments
 
 Optional. override the local list of hashes. 0 by default (do not override)
 
-=item hashes
+=item add
 
 Optional. List of hashes to add.
 
@@ -100,14 +100,14 @@ Required. Google Safe Browsing list.
 
 sub save {
 	my ($self, %args) = @_;
-	my $list 			= $args{list} 			|| croak "Missing list information";
-	my $override	= $args{override}		|| 0;
-	my @hashes		= @{ $args{add} 		|| [] };
+	my $list		= $args{list}		|| croak("Missing list information");
+	my $override	= $args{override}	|| 0;
+	my @hashes		= @{ $args{add}		|| [] };
 	my @remove		= @{ $args{remove} 	|| [] };
-	my $state			= $args{'state'}		|| '';
-	
+	my $state		= $args{'state'}	|| '';
+
 	# save the information somewhere
-	
+
 	# return the list of hashes, sorted, from the new storage
 	return @hashes;
 }
@@ -136,8 +136,8 @@ No return value
 
 sub reset {
 	my ($self, %args) = @_;
-	my $list 			= $args{list} 			|| croak "Missing list information\n";
-	
+	my $list = $args{list} || croak "Missing list information\n";
+
 	# remove all hashes, empty state
 }
 
@@ -157,7 +157,6 @@ sub next_update {
 	my ($self, %args) = @_;
 
 	# retrieve information from storage
-	
 	return time() - 10;
 }
 
@@ -184,8 +183,8 @@ Required. Google Safe Browsing list.
 
 sub get_state {
 	my ($self, %args) = @_;
-	my $list 			= $args{list} 			|| croak "Missing list information\n";
-		
+	my $list = $args{list} || croak("Missing list information\n");
+
 	return "";
 }
 
@@ -219,10 +218,10 @@ Required. List of full hashes.
 
 sub get_prefixes {
 	my ($self, %args) = @_;
-	my $list 			= $args{list} 			|| croak "Missing list information\n";
-	my @hashes		= @{ $args{hashes} 	|| [] };
+	my $list = $args{list} || croak("Missing list information\n");
+	my @hashes = @{ $args{hashes} || [] };
 
-  return ({ prefix => '...', list => $list });
+	return ({ prefix => '...', list => $list });
 }
 
 =head2 updated()
@@ -253,12 +252,11 @@ No return value
 
 sub updated {
 	my ($self, %args) = @_;
-	my $time = $args{'time'}	|| time();
-	my $next = $args{'next'}	|| time() + 1800;
-	
+	my $time = $args{'time'} || time();
+	my $next = $args{'next'} || time() + 1800;
+
 	# next update applies to all lists, save it
 }
-
 
 
 =head2 get_full_hashes()
@@ -298,15 +296,30 @@ Array of full hashes:
 
 sub get_full_hashes {
 	my ($self, %args) = @_;
-	my @lists 				= @{ $args{lists} || [] };
-	my $hash					= $args{hash}			|| return ();
+	my @lists = @{ $args{lists} || [] };
+	my $hash = $args{hash} || return ();
 
 	return (
-		{ hash => $self->ascii_to_hex('eb9744c011d332ad9c92442d18d5a0f913328ad5623983822fc86fad1aab649d'), list => { threatType => '...', threatEntryType => '...', platformType => '...' }, expire => time() + 300 },
-		{ hash => $self->ascii_to_hex('2ae11a967a5517e24c7be3fa0b8f56e7a13358ce3b07556dc251bc6b650f0f59'), list => { threatType => '...', threatEntryType => '...', platformType => '...' }, expire => time() + 300 }
+		{
+			hash => $self->ascii_to_hex('eb9744c011d332ad9c92442d18d5a0f913328ad5623983822fc86fad1aab649d'),
+			list => {
+				threatType => '...',
+				threatEntryType => '...',
+				platformType => '...'
+			},
+			expire => time() + 300
+		},
+		{
+			hash => $self->ascii_to_hex('2ae11a967a5517e24c7be3fa0b8f56e7a13358ce3b07556dc251bc6b650f0f59'),
+			list => {
+				threatType => '...',
+				threatEntryType => '...',
+				platformType => '...'
+			},
+			expire => time() + 300
+		}
 	);
 }
-
 
 
 =head2 update_error()
@@ -340,11 +353,11 @@ No return value
 =cut
 
 sub update_error {
-	my ($self, %args) 	= @_;
-	my $time			= $args{'time'}	|| time();
-	my $list			= $args{'list'}	|| '';
-	my $wait			= $args{'wait'}	|| 60;
-	my $errors		= $args{errors}	|| 1;
+	my ($self, %args) = @_;
+	my $time = $args{'time'} || time();
+	my $list = $args{'list'} || '';
+	my $wait = $args{'wait'} || 60;
+	my $errors = $args{errors} || 1;
 
 	# UPDATE updates SET last = $time, wait = $wait, errors = $errors, list = $list
 }
@@ -414,9 +427,9 @@ No return value
 =cut
 
 sub add_full_hashes {
-	my ($self, %args) 	= @_;
-	my $timestamp				= $args{timestamp}		|| time();
-	my $full_hashes			= $args{full_hashes}	|| [];
+	my ($self, %args) = @_;
+	my $timestamp = $args{timestamp} || time();
+	my $full_hashes = $args{full_hashes} || [];
 
 	foreach my $hash (@$full_hashes) {
 		# INSERT INTO [...] (hash, list, timestamp, end,type ) VALUES ($hash->{chunknum}, $hash->{hash}, $hash->{list}, $timestamp, $timestamp + $hash->{life}, $hash->{type});
@@ -451,9 +464,9 @@ No return value
 =cut
 
 sub full_hash_error {
-	my ($self, %args) 	= @_;
-	my $timestamp		= $args{timestamp}	|| time();
-	my $prefix			= $args{prefix}			|| '';
+	my ($self, %args) = @_;
+	my $timestamp = $args{timestamp} || time();
+	my $prefix = $args{prefix} || '';
 
 	# Add 1 to existing error count
 }
@@ -486,9 +499,9 @@ No return value
 =cut
 
 sub full_hash_ok {
-	my ($self, %args) 	= @_;
-	my $timestamp		= $args{timestamp}	|| time();
-	my $prefix			= $args{prefix}		|| '';
+	my ($self, %args) = @_;
+	my $timestamp = $args{timestamp} || time();
+	my $prefix = $args{prefix} || '';
 
 	# UPDATE full_hashes_errors SET errors = 0, timestamp = $timestamp WHERE prefix = $prefix
 }
@@ -530,18 +543,14 @@ Hash reference in the following format if there was an error:
 =cut
 
 sub get_full_hash_error {
-	my ($self, %args) 	= @_;
-	my $prefix			= $args{prefix}		|| '';
-
-
-	# no error
-	return undef;
+	my ($self, %args) = @_;
+	my $prefix = $args{prefix} || '';
 
 	# some error
 	# return { timestamp => time(), errors => 3 }
+	# no error
+	return undef;
 }
-
-
 
 
 =head1 PRIVATE FUNCTIONS
@@ -562,11 +571,9 @@ Transform hexadecimal strings to printable ASCII strings. Used mainly for debugg
 
 sub hex_to_ascii {
 	my ($self, $hex) = @_;
-
-
 	my $ascii = '';
 
-	while (length $hex > 0) {
+	while (length($hex) > 0) {
 		$ascii .= sprintf("%02x",  ord( substr($hex, 0, 1, '') ) );
 	}
 
@@ -592,32 +599,6 @@ sub ascii_to_hex {
 	return $hex;
 }
 
-
-=head2 debug()
-
-Print debug output.
-
-=cut
-
-sub debug {
-	my ($self, @messages) = @_;
-
-	print join('', @messages, "\n") if ($self->{debug} > 0);
-}
-
-
-=head2 error()
-
-Print error message.
-
-=cut
-
-sub error {
-	my ($self, $message) = @_;
-
-	print "ERROR - ", $message if ($self->{debug} > 0 || $self->{errors} > 0);
-	$self->{last_error} = $message;
-}
 
 =head1 CHANGELOG
 

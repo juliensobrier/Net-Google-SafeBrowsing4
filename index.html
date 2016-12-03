@@ -7,7 +7,7 @@
 <link rev="made" href="mailto:root@localhost" />
 </head>
 
-<body style="background-color: white">
+<body>
 
 
 
@@ -37,13 +37,9 @@
       <li><a href="#ua">ua()</a></li>
       <li><a href="#hex_to_ascii">hex_to_ascii()</a></li>
       <li><a href="#ascii_to_hex">ascii_to_hex()</a></li>
-      <li><a href="#debug1">debug()</a></li>
-      <li><a href="#error">error()</a></li>
-      <li><a href="#perf1">perf()</a></li>
       <li><a href="#canonical_domain">canonical_domain()</a></li>
       <li><a href="#canonical_path">canonical_path()</a></li>
       <li><a href="#canonical">canonical()</a></li>
-      <li><a href="#canonical_uri">canonical_uri()</a></li>
       <li><a href="#full_hashes">full_hashes()</a></li>
       <li><a href="#request_full_hash">request_full_hash()</a></li>
       <li><a href="#parse_full_hashes">parse_full_hashes()</a></li>
@@ -56,27 +52,28 @@
 
 <h1 id="NAME">NAME</h1>
 
-<p>Net::Google::SafeBrowsing4 - Perl extension for the Google Safe Browsing v4 API. (Google Safe Browsing v3 has been deprecated by Google.)</p>
+<p>Net::Google::SafeBrowsing4 - Perl extension for the Google Safe Browsing v4 API.</p>
 
 <h1 id="SYNOPSIS">SYNOPSIS</h1>
 
-<pre><code>  use Net::Google::SafeBrowsing4;
-  use Net::Google::SafeBrowsing4::File;
-  
-  my $storage = Net::Google::SafeBrowsing4::File-&gt;new(path =&gt; &#39;.&#39;);
-  my $gsb = Net::Google::SafeBrowsing4-&gt;new(
-          key   =&gt; &quot;my key&quot;, 
-          storage       =&gt; $storage,
-  );
-  
-  $gsb-&gt;update();
-  my @matches = $gsb-&gt;lookup(url =&gt; &#39;http://ianfette.org/&#39;);
-  
-  if (scalar @matches &gt; 0) {
-          print &quot;http://ianfette.org/ is flagged as a dangerous site\n&quot;;
-  }
+<pre><code>        use Net::Google::SafeBrowsing4;
+        use Net::Google::SafeBrowsing4::File;
 
-  $storage-&gt;close();</code></pre>
+        my $storage = Net::Google::SafeBrowsing4::File-&gt;new(path =&gt; &#39;.&#39;);
+        my $gsb = Net::Google::SafeBrowsing4-&gt;new(
+                key     =&gt; &quot;my key&quot;,
+                storage =&gt; $storage,
+                logger  =&gt; Log4Perl-&gt;get_logger();
+        );
+
+        $gsb-&gt;update();
+        my @matches = $gsb-&gt;lookup(url =&gt; &#39;http://ianfette.org/&#39;);
+
+        if (scalar(@matches) &gt; 0) {
+                print(&quot;http://ianfette.org/ is flagged as a dangerous site\n&quot;);
+        }
+
+        $storage-&gt;close();</code></pre>
 
 <h1 id="DESCRIPTION">DESCRIPTION</h1>
 
@@ -88,7 +85,7 @@
 
 <p>The source code is available on github at <a href="https://github.com/juliensobrier/Net-Google-SafeBrowsing4">https://github.com/juliensobrier/Net-Google-SafeBrowsing4</a>.</p>
 
-<p>If you do not need to inspect more than 10,000 URLs a day, you can use <a>Net::Google::SafeBrowsing4::Lookup</a> with the Google Safe Browsing v4 Lookup API which does not require to store and maintain a local database.</p>
+<p>If you do not need to inspect more than 10,000 URLs a day, you can use Net::Google::SafeBrowsing4::Lookup with the Google Safe Browsing v4 Lookup API which does not require to store and maintain a local database.</p>
 
 <p>IMPORTANT: Google Safe Browsing v4 requires an API key from Google: https://developers.google.com/safe-browsing/v4/get-started.</p>
 
@@ -142,12 +139,11 @@
 
 <p>Create a Net::Google::SafeBrowsing4 object</p>
 
-<pre><code>  my $gsb = Net::Google::SafeBrowsing4-&gt;new(
-                key     =&gt; &quot;my key&quot;, 
+<pre><code>        my $gsb = Net::Google::SafeBrowsing4-&gt;new(
+                key             =&gt; &quot;my key&quot;,
                 storage =&gt; Net::Google::SafeBrowsing4::File-&gt;new(path =&gt; &#39;.&#39;),
-                debug   =&gt; 0,
-                lists =&gt; [&quot;*/ANY_PLATFORM/URL&quot;],
-  );</code></pre>
+                lists   =&gt; [&quot;*/ANY_PLATFORM/URL&quot;],
+        );</code></pre>
 
 <p>Arguments</p>
 
@@ -177,30 +173,34 @@
 <p>Optional. The Google Safe Browsing lists to handle. By default, handles all lists.</p>
 
 </dd>
-<dt id="debug">debug</dt>
+<dt id="logger">logger</dt>
 <dd>
 
-<p>Optional. Set to 1 to enable debugging. 0 (disabled) by default.</p>
-
-<p>The debug output maybe quite large and can slow down significantly the update and lookup functions.</p>
-
-</dd>
-<dt id="errors">errors</dt>
-<dd>
-
-<p>Optional. Set to 1 to show errors to STDOUT. 0 (disabled by default).</p>
+<p>Optional. Log4Perl compatible object reference. By default this option is unset, making Net::Google::SafeBrowsing4 silent.</p>
 
 </dd>
 <dt id="perf">perf</dt>
 <dd>
 
-<p>Optional. Set to 1 to show performance information.</p>
+<p>Optional. Set to 1 to enable performance information logging. Needs a <i>logger</i>, performance information will be logged on DEBUG level.</p>
 
 </dd>
 <dt id="version">version</dt>
 <dd>
 
 <p>Optional. Google Safe Browsing version. 4 by default</p>
+
+</dd>
+<dt id="http_timeout">http_timeout</dt>
+<dd>
+
+<p>Optional. Network timeout setting for <a href="/../../../../../../../usr/share/perl5/LWP/UserAgent.html">LWP::UserAgent</a> (60 seconds by default)</p>
+
+</dd>
+<dt id="http_compression">http_compression</dt>
+<dd>
+
+<p>Optional. List of accepted compressions for HTTP response. Enabling all supported compressions reported by <a href="/../../../../../../../usr/share/perl5/HTTP/Message.html">HTTP::Message</a> by default.</p>
 
 </dd>
 </dl>
@@ -211,7 +211,7 @@
 
 <p>Perform a database update.</p>
 
-<pre><code>  $gsb-&gt;update();</code></pre>
+<pre><code>        $gsb-&gt;update();</code></pre>
 
 <p>Return the status of the update (see the list of constants above): INTERNAL_ERROR, SERVER_ERROR, NO_UPDATE, NO_DATA or SUCCESSFUL</p>
 
@@ -243,20 +243,21 @@
 
 <p>Returns the list of hashes, along with the list and any metadata, that matches the URL:</p>
 
-<pre><code>  ({
-          &#39;hash&#39; =&gt; &#39;...&#39;,
-          &#39;metadata&#39; =&gt; {
-                  &#39;malware_threat_type&#39; =&gt; &#39;DISTRIBUTION&#39;
+<pre><code>        (
+                {
+                        &#39;hash&#39; =&gt; &#39;...&#39;,
+                        &#39;metadata&#39; =&gt; {
+                                &#39;malware_threat_type&#39; =&gt; &#39;DISTRIBUTION&#39;
+                        },
+                        &#39;list&#39; =&gt; {
+                                &#39;threatEntryType&#39; =&gt; &#39;URL&#39;,
+                                &#39;threatType&#39; =&gt; &#39;MALWARE&#39;,
+                                &#39;platformType&#39; =&gt; &#39;ANY_PLATFORM&#39;
+                        },
+                        &#39;cache&#39; =&gt; &#39;300s&#39;
                 },
-          &#39;list&#39; =&gt; {
-                  &#39;threatEntryType&#39; =&gt; &#39;URL&#39;,
-                        &#39;threatType&#39; =&gt; &#39;MALWARE&#39;,
-                        &#39;platformType&#39; =&gt; &#39;ANY_PLATFORM&#39;
-                },
-          &#39;cache&#39; =&gt; &#39;300s&#39;
-  },
-  ...
-  )</code></pre>
+                ...
+        )</code></pre>
 
 <p>Arguments</p>
 
@@ -280,23 +281,23 @@
 
 <p>Get all the lists from Google Safe Browsing.</p>
 
-<pre><code>  my $lists = $gsb-&gt;get_lists();</code></pre>
+<pre><code>        my $lists = $gsb-&gt;get_lists();</code></pre>
 
 <p>Return an array reference of all the lists:</p>
 
-<pre><code>  [
-    {
-      &#39;threatEntryType&#39; =&gt; &#39;URL&#39;,
-      &#39;threatType&#39; =&gt; &#39;MALWARE&#39;,
-      &#39;platformType&#39; =&gt; &#39;ANY_PLATFORM&#39;
-    },
-    {
-      &#39;threatEntryType&#39; =&gt; &#39;URL&#39;,
-      &#39;threatType&#39; =&gt; &#39;MALWARE&#39;,
-      &#39;platformType&#39; =&gt; &#39;WINDOWS&#39;
-    },
-  ...
-  ]</code></pre>
+<pre><code>        [
+                {
+                        &#39;threatEntryType&#39; =&gt; &#39;URL&#39;,
+                        &#39;threatType&#39; =&gt; &#39;MALWARE&#39;,
+                        &#39;platformType&#39; =&gt; &#39;ANY_PLATFORM&#39;
+                },
+                {
+                        &#39;threatEntryType&#39; =&gt; &#39;URL&#39;,
+                        &#39;threatType&#39; =&gt; &#39;MALWARE&#39;,
+                        &#39;platformType&#39; =&gt; &#39;WINDOWS&#39;
+                },
+                ...
+        ]</code></pre>
 
 <h1 id="PRIVATE-FUNCTIONS">PRIVATE FUNCTIONS</h1>
 
@@ -332,18 +333,6 @@
 
 <p>Transform ASCII strings to hexadecimal strings.</p>
 
-<h2 id="debug1">debug()</h2>
-
-<p>Print debug output.</p>
-
-<h2 id="error">error()</h2>
-
-<p>Print error message.</p>
-
-<h2 id="perf1">perf()</h2>
-
-<p>Print performance message.</p>
-
 <h2 id="canonical_domain">canonical_domain()</h2>
 
 <p>Find all canonical domains a domain.</p>
@@ -355,12 +344,6 @@
 <h2 id="canonical">canonical()</h2>
 
 <p>Find all canonical URLs for a URL.</p>
-
-<h2 id="canonical_uri">canonical_uri()</h2>
-
-<p>Create a canonical URI.</p>
-
-<p>NOTE: URI cannot handle all the test cases provided by Google. This method is a hack to pass most of the test. A few tests are still failing. The proper way to handle URL canonicalization according to Google would be to create a new module to handle URLs. However, I believe most real-life cases are handled correctly by this function.</p>
 
 <h2 id="full_hashes">full_hashes()</h2>
 
