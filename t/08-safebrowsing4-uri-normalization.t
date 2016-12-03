@@ -18,12 +18,6 @@ my @invalid_uris = (
 	'mailto:my@email.site',
 	"shihtzu://google.com",
 	"http://:80/index.html",
-	# Single number IPv4 (decimal/octal/hexadecimal) out of range
-	#'http://4294967296/',
-	#'http://00000040000000000/',
-	#'http://0x100000000/',
-	# Dotted-decimal IPv4 with too much elements:
-	#'http://195.56.65.250.1'
 );
 
 my %uris = (

@@ -191,7 +191,7 @@ sub _normalize_ip {
 	my $host = shift;
 
 	# Shortcut: If it doesn't look like an IPv4, then return early
-	if ($host !~ /^[[:xdigit:]x\.]+$/) {
+	if ($host !~ /^(?:0x[[:xdigit:]]+|\d+)(?:\.(?:0x[[:xdigit:]]+|\d+))*$/si) {
 		return $host;
 	}
 
@@ -263,7 +263,7 @@ sub _parse_ipv4_segment {
 	if ($segment =~ /^0+([0-7]+)$/) {
 		$decimal = oct($1);
 	}
-	elsif ($segment =~ /^0x0*([[:xdigit:]]+)$/) {
+	elsif ($segment =~ /^0x0*([[:xdigit:]]+)$/si) {
 		$decimal = hex($1);
 	}
 	elsif ($segment =~ /^[1-9]\d+$/) {
