@@ -11,7 +11,6 @@ use JSON::XS;
 use List::Util qw(first);
 use LWP::UserAgent;
 use MIME::Base64;
-use String::HexConvert;
 use Text::Trim;
 use Time::HiRes qw(time);
 
@@ -638,39 +637,6 @@ sub ua {
 	}
 
 	return $self->{ua};
-}
-
-
-=head2 hex_to_ascii()
-
-Transform hexadecimal strings to printable ASCII strings. Used mainly for debugging.
-
-  print $gsb->hex_to_ascii('hex value');
-
-=cut
-
-sub hex_to_ascii {
-	my ($self, $hex) = @_;
-
-	return String::HexConvert::ascii_to_hex($hex);
-}
-
-
-=head2 ascii_to_hex()
-
-Transform ASCII strings to hexadecimal strings.
-
-=cut
-
-sub ascii_to_hex {
-	my ($self, $ascii) = @_;
-
-	my $hex = '';
-	for (my $i = 0; $i < int(length($ascii) / 2); $i++) {
-		$hex .= chr(hex( substr($ascii, $i * 2, 2) ));
-	}
-
-	return $hex;
 }
 
 =head2 request_full_hash()

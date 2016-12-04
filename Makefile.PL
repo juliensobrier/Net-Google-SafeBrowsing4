@@ -18,7 +18,6 @@ WriteMakefile(
 		Net::IP::Lite		=> 0,
 		Path::Tiny			=> 0,
 		Storable			=> 0,
-		String::HexConvert	=> 0,
 		Test::More			=> 0.92,
 		Text::Trim			=> 0,
 		Time::HiRes			=> 0,
