@@ -5,7 +5,7 @@ use warnings;
 
 use Test::More qw(no_plan);
 
-use Net::Google::SafeBrowsing4;
+use Net::Google::SafeBrowsing4::URI;
 
 
 # URI suffix/prefix expressions extraction tests from Google's API webpage:
@@ -39,14 +39,16 @@ my %uris = (
 	)}
 );
 
-my $gsb = Net::Google::SafeBrowsing4->new();
-
 foreach my $uri (keys(%uris)) {
-	my @expressions = $gsb->canonical($uri);
-	is(scalar(@expressions), scalar(keys(%{$uris{$uri}})), "Number of possible prefix/suffix expressions for '". $uri ."'");
-	foreach my $expression (@expressions) {
-		ok(exists($uris{$uri}->{$expression}), "prefix/suffix expression '". $expression ."' found");
+	note("Checking uri: " . $uri . "\n");
+	my $gsb_uri = Net::Google::SafeBrowsing4::URI->new($uri);
+	my @lookups = $gsb_uri->generate_lookupuris();
+	is(scalar(@lookups), scalar(keys(%{$uris{$uri}})), "Number of possible prefix/suffix uris for '". $uri ."'");
+	foreach my $lookupuri (@lookups) {
+		my $expression = $lookupuri->as_string();
+		$expression =~ s/^https?:\/\///i;
+		ok(exists($uris{$uri}->{$expression}), "prefix/suffix uri '". $expression ."' found");
 		delete($uris{$uri}->{$expression});
 	}
-	is(scalar(keys(%{$uris{$uri}})), 0, "All prefix/suffix expressions found");
+	is(scalar(keys(%{$uris{$uri}})), 0, "All prefix/suffix uris found");
 }

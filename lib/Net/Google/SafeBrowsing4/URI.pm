@@ -83,6 +83,65 @@ sub as_string {
 	return $self->{uri};
 }
 
+=item generate_lookupuris
+
+Generates all partial/full URIs supported by Google SafeBrowsing. See "suffix/prefix expressions" topic in GSBv4 API reference.
+Returns a list of L<Net::Google::SafeBrowsing4::URI> objects.
+
+=cut
+
+sub generate_lookupuris {
+	my $self = shift;
+	my @uris = ();
+
+	$self->as_string() =~ /^(https?:\/\/)([^\/]+)(\/.*)$/i;
+	my ($scheme, $host, $path_query) = ($1, $2, $3);
+
+	# Collect host suffixes
+	my @domains = ();
+	if ($host !~ /^\d+\.\d+\.\d+\.\d+$/) {
+		my @parts = split(/\./, $host);
+		splice(@parts, 0, -6); # take 5 top most compoments
+
+		while (scalar(@parts) > 2) {
+			shift(@parts);
+			push(@domains, join(".", @parts) );
+		}
+	}
+	push(@domains, $host);
+
+	# Collect path & query prefixes
+	my @paths = ($path_query);
+	if ($path_query =~ s/^([^\?]+)\?.*$/$1/) {
+		push(@paths, $1);
+	}
+
+	my @parts = split(/\//, $path_query);
+	if (scalar(@parts) > 4) {
+		@parts = splice(@parts, -4, 4);
+	}
+
+	my $previous = '';
+	while (scalar(@parts) > 1) {
+		my $part = shift(@parts);
+		$previous .= $part . "/";
+		push(@paths, $previous);
+	}
+
+	# Assemble the list of Net::Google::SafeBrowsing4::URI objects
+	foreach my $domain (@domains) {
+		foreach my $path (@paths) {
+			my $gsb_uri = Net::Google::SafeBrowsing4::URI->new($scheme . $domain . $path);
+			if ($gsb_uri) {
+				push(@uris, $gsb_uri);
+			}
+
+		}
+	}
+
+	return @uris;
+}
+
 =head1 PRIVATE METHODS
 
 =over

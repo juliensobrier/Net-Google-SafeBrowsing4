@@ -67,6 +67,11 @@ my %uris = (
 	'username@google.com' => 'http://google.com/',
 	# Removes username even with more @ marks
 	'http://user@@name@google.com/' => 'http://google.com/',
+	# Extra dots in hostname
+	'foo...com' => 'http://foo.com/',
+	'FoO..com' => 'http://foo.com/',
+	'foo.com...' => 'http://foo.com/',
+	'...foo.com' => 'http://foo.com/',
 );
 
 foreach my $uri (sort { ($a || '') cmp ($b || '') } @invalid_uris) {

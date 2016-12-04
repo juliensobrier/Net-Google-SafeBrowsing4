@@ -14,7 +14,6 @@ use MIME::Base64;
 use String::HexConvert;
 use Text::Trim;
 use Time::HiRes qw(time);
-use URI;
 
 use Net::Google::SafeBrowsing4::URI;
 
@@ -399,7 +398,7 @@ sub lookup {
 
 	my $all_lists = $self->make_lists(lists => $lists);
 
-	my @hashes = $self->lookup_suffix(lists => $all_lists, url => $url->as_string());
+	my @hashes = $self->lookup_suffix(lists => $all_lists, url => $url);
 	return @hashes;
 }
 
@@ -675,103 +674,6 @@ sub ascii_to_hex {
 	return $hex;
 }
 
-
-=head2 canonical_domain()
-
-Find all canonical domains a domain.
-
-=cut
-
-sub canonical_domain {
-	my ($self, $domain) = @_;
-
-	# Remove all leading and trailing dots.
-	$domain =~ s/^\.+//;
-	$domain =~ s/\.+$//;
-
-	# Replace consecutive dots with a single dot.
-	while ($domain =~ s/\.\.+/\./g) { }
-
-	# Lowercase the whole string.
-	$domain = lc($domain);
-
-	my @domains = ($domain);
-
-
-	if ($domain =~ /^\d+\.\d+\.\d+\.\d+$/) { # loose check for IP address, should be enough
-		return @domains;
-	}
-
-	my @parts = split(/\./, $domain);
-	splice(@parts, 0, -6); # take 5 top most compoments
-
-	while (scalar(@parts) > 2) {
-		shift(@parts);
-		push(@domains, join(".", @parts) );
-	}
-
-	return @domains;
-}
-
-=head2 canonical_path()
-
-Find all canonical paths for a URL.
-
-=cut
-
-sub canonical_path {
-	my ($self, $path) 	= @_;
-
-	my @paths = ($path); # return full path
-
-	# without query string
-	if ($path =~ /\?/) {
-		$path =~ s/\?.*$//;
-
-		push(@paths, $path);
-	}
-
-	my @parts = split(/\//, $path);
-	if (scalar(@parts) > 4) {
-		@parts = splice(@parts, -4, 4);
-	}
-
-	my $previous = '';
-	while (scalar(@parts) > 1) {
-		my $val = shift(@parts);
-		$previous .= "$val/";
-
-		push(@paths, $previous);
-	}
-
-	return @paths;
-}
-
-=head2 canonical()
-
-Find all canonical URLs for a URL.
-
-=cut
-
-sub canonical {
-	my ($self, $url) = @_;
-
-	my @urls = ();
-
-	my $uri = URI->new($url);
-	my @domains = $self->canonical_domain($uri->host());
-	my @paths = $self->canonical_path($uri->path_query());
-
-	foreach my $domain (@domains) {
-		foreach my $path (@paths) {
-			push(@urls, "$domain$path");
-		}
-	}
-
-	return @urls;
-}
-
-
 =head2 full_hashes()
 
 Return all possible full hashes for a URL.
@@ -781,12 +683,14 @@ Return all possible full hashes for a URL.
 sub full_hashes {
 	my ($self, $url) = @_;
 
-	my @urls = $self->canonical($url);
+	my @urls = $url->generate_lookupuris();
 	my @hashes = ();
 
-	foreach my $url (@urls) {
-		push(@hashes, sha256($url));
-		$self->{logger} && $self->{logger}->debug("$url " . $self->hex_to_ascii(sha256($url)));
+	foreach my $gsb_uri (@urls) {
+		my $string = $url->as_string();
+		$string =~ s/^https?:\/\///i;
+		push(@hashes, sha256($string));
+		$self->{logger} && $self->{logger}->debug("$string " . $self->hex_to_ascii($hashes[-1]));
 	}
 
 	return @hashes;

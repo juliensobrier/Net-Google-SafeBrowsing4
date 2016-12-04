@@ -19,6 +19,7 @@ my $gsb_uri;
 $gsb_uri = new_ok('Net::Google::SafeBrowsing4::URI' => [$uri], qw(Net::Google::SafeBrowsing4::URI));
 can_ok($gsb_uri, qw{
 	as_string
+	generate_lookupuris
 });
 
 SKIP: {
