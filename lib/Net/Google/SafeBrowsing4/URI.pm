@@ -3,6 +3,7 @@ package Net::Google::SafeBrowsing4::URI;
 use strict;
 use warnings;
 
+use Digest::SHA qw(sha256);
 use Net::IP::Lite qw();
 use URI;
 
@@ -140,6 +141,21 @@ sub generate_lookupuris {
 	}
 
 	return @uris;
+}
+
+=item hash
+
+Generates the SHA-256 hash of the URI (with scheme removed).
+
+=cut
+
+sub hash {
+	my $self = shift;
+
+	my $uri = $self->as_string();
+	$uri =~ s/^https?:\/\///i;
+
+	return sha256($uri);
 }
 
 =head1 PRIVATE METHODS

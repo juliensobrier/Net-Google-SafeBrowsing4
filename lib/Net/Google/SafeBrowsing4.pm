@@ -461,9 +461,8 @@ sub lookup_suffix {
 
 	# Calculate prefixes
 	my $start = time();
-	my @full_hashes = $self->full_hashes($url);
+	my @full_hashes = map { $_->hash() } $url->generate_lookupuris();
 	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hashes from URL: ", time() - $start,  "s ");
-
 
  	# Local lookup
  	$start = time();
@@ -672,28 +671,6 @@ sub ascii_to_hex {
 	}
 
 	return $hex;
-}
-
-=head2 full_hashes()
-
-Return all possible full hashes for a URL.
-
-=cut
-
-sub full_hashes {
-	my ($self, $url) = @_;
-
-	my @urls = $url->generate_lookupuris();
-	my @hashes = ();
-
-	foreach my $gsb_uri (@urls) {
-		my $string = $url->as_string();
-		$string =~ s/^https?:\/\///i;
-		push(@hashes, sha256($string));
-		$self->{logger} && $self->{logger}->debug("$string " . $self->hex_to_ascii($hashes[-1]));
-	}
-
-	return @hashes;
 }
 
 =head2 request_full_hash()
