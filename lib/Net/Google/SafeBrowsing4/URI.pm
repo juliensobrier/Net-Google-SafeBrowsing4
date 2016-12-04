@@ -112,31 +112,28 @@ sub generate_lookupuris {
 	push(@domains, $host);
 
 	# Collect path & query prefixes
-	my @paths = ($path_query);
-	if ($path_query =~ s/^([^\?]+)\?.*$/$1/) {
-		push(@paths, $1);
-	}
-
+	my @paths = ();
 	my @parts = split(/\//, $path_query);
-	if (scalar(@parts) > 4) {
-		@parts = splice(@parts, -4, 4);
-	}
-
-	my $previous = '';
-	while (scalar(@parts) > 1) {
-		my $part = shift(@parts);
-		$previous .= $part . "/";
+	my $part_count = scalar(@parts);
+	$part_count = $part_count > 4 ? 4 : $part_count - 1; # limit to 4
+	my $previous = "";
+	for (my $i = 0; $i < $part_count; $i++) {
+		$previous .= "/" . $parts[$i] ."/";
 		push(@paths, $previous);
 	}
+	if ($path_query =~ /^([^\?]+)\?.*$/) {
+		push(@paths, $1);
+	}
+	push(@paths, $path_query);
 
 	# Assemble the list of Net::Google::SafeBrowsing4::URI objects
 	foreach my $domain (@domains) {
 		foreach my $path (@paths) {
 			my $gsb_uri = Net::Google::SafeBrowsing4::URI->new($scheme . $domain . $path);
+			# uncoverable branch false
 			if ($gsb_uri) {
 				push(@uris, $gsb_uri);
 			}
-
 		}
 	}
 

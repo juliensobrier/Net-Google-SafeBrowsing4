@@ -25,6 +25,13 @@ my %uris = (
 		testing.google.test/
 		google.test/
 	)},
+	'google.test/first/second/third/fourth/fifth/sixth' =>  { map { $_ => 1 } qw(
+		google.test/first/second/third/fourth/fifth/sixth
+		google.test/first/second/third/
+		google.test/first/second/
+		google.test/first/
+		google.test/
+	)},
 );
 
 foreach my $uri (keys(%uris)) {
