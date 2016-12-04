@@ -380,7 +380,7 @@ Arguments
 
 =item lists
 
-Optional. Lookup against pecific lists. Use the list(s) from new() by default.
+Optional. Lookup against specific lists. Use the list(s) from new() by default.
 
 =item url
 
@@ -395,10 +395,14 @@ sub lookup {
 	my $lists = $args{lists} || $self->{lists} || [];
 	my $url = Net::Google::SafeBrowsing4::URI->new($args{url}) || return ();
 
-	my $all_lists = $self->make_lists(lists => $lists);
+	# Calculate full hashes
+	my $start = time();
+	my @full_hashes = map { $_->hash() } $url->generate_lookupuris();
+	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hashes from URL: ", time() - $start,  "s ");
 
-	my @hashes = $self->lookup_suffix(lists => $all_lists, url => $url);
-	return @hashes;
+	my $all_lists = $self->make_lists(lists => $lists);
+	my @matched_hashes = $self->lookup_suffix(lists => $all_lists, hashes => \@full_hashes);
+	return @matched_hashes;
 }
 
 
@@ -449,35 +453,28 @@ These functions are not intended to be used externally.
 
 =head2 lookup_suffix()
 
-Lookup a host prefix.
+Lookup uri hashes..
 
 =cut
 
 sub lookup_suffix {
 	my ($self, %args) = @_;
 	my $lists = $args{lists} || croak("Missing lists\n");
-	my $url = $args{url} || return '';
-
-	# Calculate prefixes
-	my $start = time();
-	my @full_hashes = map { $_->hash() } $url->generate_lookupuris();
-	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hashes from URL: ", time() - $start,  "s ");
+	my $hashes = $args{hashes} || return '';
 
  	# Local lookup
- 	$start = time();
- 	my @prefixes = $self->{storage}->get_prefixes(hashes => [@full_hashes], lists => $lists);
+ 	my $start = time();
+ 	my @prefixes = $self->{storage}->get_prefixes(hashes => $hashes, lists => $lists);
 	$self->{perf} && $self->{logger} && $self->{logger}->debug("Local lookup: ", time() - $start,  "s ");
-
 	if (scalar(@prefixes) == 0) {
 		$self->{logger} && $self->{logger}->debug("No hit in local lookup");
 		return ();
 	}
-
 	$self->{logger} && $self->{logger}->debug("Found ", scalar(@prefixes), " prefix(s) in local database");
 
 	# get stored full hashes
 	$start = time();
-	foreach my $hash (@full_hashes) {
+	foreach my $hash (@{$hashes}) {
 		my @hashes = $self->{storage}->get_full_hashes(hash => $hash, lists => $lists);
 
 		if (scalar(@hashes) > 0) {
@@ -497,7 +494,7 @@ sub lookup_suffix {
 	# Make sure the full hash match one of the full hashes for a give URL
 	my @results = ();
 	$start = time();
-	foreach my $full_hash (@full_hashes) {
+	foreach my $full_hash (@$hashes) {
 		my @matches = grep { $_->{hash} eq $full_hash } @hashes;
 		push(@results, @matches) if (scalar(@matches) > 0);
 	}
