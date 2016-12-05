@@ -23,6 +23,8 @@ can_ok($gsb_uri, qw{
 	hash
 });
 
+is(Net::Google::SafeBrowsing4::URI->new(), undef, "Constructor needs parameter.");
+
 SKIP: {
 	eval {
 		use Test::Pod::Coverage;

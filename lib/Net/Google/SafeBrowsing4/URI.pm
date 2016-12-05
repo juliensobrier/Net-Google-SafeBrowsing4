@@ -55,7 +55,7 @@ sub new {
 	my $class = shift;
 	my @args = @_;
 
-	if (!scalar(@args) || !$args[0]) {
+	if ((scalar(@args) == 0) || !$args[0]) {
 		return undef;
 	}
 
@@ -63,8 +63,7 @@ sub new {
 		rawuri => $args[0],
 	};
 
-	bless($self, $class) or croak("Can't bless $class: $!");
-
+	bless($self, $class);
 	return $self->_normalize() ? $self : undef;
 }
 
@@ -130,10 +129,7 @@ sub generate_lookupuris {
 	foreach my $domain (@domains) {
 		foreach my $path (@paths) {
 			my $gsb_uri = Net::Google::SafeBrowsing4::URI->new($scheme . $domain . $path);
-			# uncoverable branch false
-			if ($gsb_uri) {
-				push(@uris, $gsb_uri);
-			}
+			push(@uris, $gsb_uri);
 		}
 	}
 
@@ -180,8 +176,10 @@ sub _normalize {
 
 	# Parse URI
 	my $uri_obj = URI->new($modified_rawuri);
-	if (ref($uri_obj) !~ /^URI::https?$/ && !$uri_obj->scheme()) {
-		$uri_obj = URI->new("http://" . $modified_rawuri);
+	if (ref($uri_obj) !~ /^URI::https?$/) {
+		if (!$uri_obj->scheme()) {
+			$uri_obj = URI->new("http://" . $modified_rawuri);
+		}
 	}
 	# Only http and https URIs are supported
 	if (ref($uri_obj) !~ /^URI::https?$/) {
@@ -290,11 +288,7 @@ sub _normalize_ip {
 	}
 
 	$ip = Net::IP::Lite->new($decimal);
-	if ($ip) {
-		return $ip->transform();
-	}
-
-	return $host;
+	return $ip->transform();
 }
 
 =over

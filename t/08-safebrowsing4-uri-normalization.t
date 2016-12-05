@@ -1,4 +1,4 @@
-#!perl
+#!/usr/bin/perl
 
 # ABSTRACT: URI Normalization tests for Net::Google::SafeBrowsing4::URI class
 
@@ -18,6 +18,7 @@ my @invalid_uris = (
 	'mailto:my@email.site',
 	"shihtzu://google.com",
 	"http://:80/index.html",
+	'gopher:google.com',
 );
 
 my %uris = (

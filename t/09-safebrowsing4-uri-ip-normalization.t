@@ -16,6 +16,7 @@ my @invalid_uris = (
 	'http://0x100000000/',
 	# Dotted-decimal IPv4 with too much elements:
 	'http://195.56.65.250.1',
+	'1.1.1.1.1',
 	# One segment out of bounds
 	'195.56.65.256',
 	'195.0x100.65.250',
