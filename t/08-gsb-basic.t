@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 
+# ABSTRACT: Basic tests about the Net::Google::SafeBrowsing4 class
+
 use strict;
 use warnings;
 

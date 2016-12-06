@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 
+# ABSTRACT: Lookup URI (suffix/prefix expression) extraction tests for Net::Google::SafeBrowsing4::URI class
+
 use strict;
 use warnings;
 
@@ -8,35 +10,30 @@ use Test::More qw(no_plan);
 use Net::Google::SafeBrowsing4::URI;
 
 
-# URI suffix/prefix expressions extraction tests from Google's API webpage:
-# https://developers.google.com/safe-browsing/v4/urls-hashing#suffixprefix-expressions
 my %uris = (
-	'http://a.b.c/1/2.html?param=1' => { map { $_ => 1 } qw(
-		a.b.c/1/2.html?param=1
-		a.b.c/1/2.html
-		a.b.c/
-		a.b.c/1/
-		b.c/1/2.html?param=1
-		b.c/1/2.html
-		b.c/
-		b.c/1/
+	'http://www1.rapidsoftclearon.net/' =>  { map { $_ => 1 } qw(
+		www1.rapidsoftclearon.net/
+		rapidsoftclearon.net/
 	)},
-	'http://a.b.c.d.e.f.g/1.html' => { map { $_ => 1 } qw(
-		a.b.c.d.e.f.g/1.html
-		a.b.c.d.e.f.g/
-		c.d.e.f.g/1.html
-		c.d.e.f.g/
-		d.e.f.g/1.html
-		d.e.f.g/
-		e.f.g/1.html
-		e.f.g/
-		f.g/1.html
-		f.g/
+	'www.google.com' =>  { map { $_ => 1 } qw(
+		www.google.com/
+		google.com/
 	)},
-	'http://1.2.3.4/1/' => { map { $_ => 1 } qw(
-		1.2.3.4/1/
-		1.2.3.4/
-	)}
+	'google.com' =>  { map { $_ => 1 } qw(
+		google.com/
+	)},
+	'malware.testing.google.test' =>  { map { $_ => 1 } qw(
+		malware.testing.google.test/
+		testing.google.test/
+		google.test/
+	)},
+	'google.test/first/second/third/fourth/fifth/sixth' =>  { map { $_ => 1 } qw(
+		google.test/first/second/third/fourth/fifth/sixth
+		google.test/first/second/third/
+		google.test/first/second/
+		google.test/first/
+		google.test/
+	)},
 );
 
 foreach my $uri (keys(%uris)) {

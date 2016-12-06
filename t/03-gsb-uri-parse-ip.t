@@ -1,4 +1,4 @@
-#!perl
+#!/usr/bin/perl
 
 # ABSTRACT: IP Address Normalization tests for Net::Google::SafeBrowsing4::URI class
 

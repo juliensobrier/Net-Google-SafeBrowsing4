@@ -1,5 +1,8 @@
 #!/usr/bin/perl
 
+# ABSTRACT: URI Normalization tests for Net::Google::SafeBrowsing4::URI class listed on Google's API webpage
+# See: https://developers.google.com/safe-browsing/v4/urls-hashing#canonicalization
+
 use strict;
 use warnings;
 
@@ -8,8 +11,6 @@ use Test::More qw(no_plan);
 use Net::Google::SafeBrowsing4::URI;
 
 
-# URI Canonicalization tests from Google's API webpage:
-# https://developers.google.com/safe-browsing/v4/urls-hashing#canonicalization
 my %uris = (
 	'http://host/%25%32%35' => 'http://host/%25',
 	'http://host/%25%32%35%25%32%35' => 'http://host/%25%25',
@@ -34,7 +35,7 @@ my %uris = (
 	'http://evil.com/foo#bar#baz' => 'http://evil.com/foo',
 	'http://evil.com/foo;' => 'http://evil.com/foo;',
 	'http://evil.com/foo?bar;' => 'http://evil.com/foo?bar;',
-	# @TODO: Google's GO Client percent-escapes based on the hostname is a valid unicode string or not
+	# @TODO: Google's GO Client percent-escapes based on the hostname contains a >0x80 character or not
 	# "http://\x01\x80.com/" => 'http://%01%80.com/',
 	'http://notrailingslash.com' => 'http://notrailingslash.com/',
 	'http://www.gotaport.com:1234/' => 'http://www.gotaport.com/',
