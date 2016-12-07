@@ -34,17 +34,11 @@
       <li><a href="#make_lists">make_lists()</a></li>
       <li><a href="#update_error">update_error()</a></li>
       <li><a href="#make_lists_for_update">make_lists_for_update()</a></li>
-      <li><a href="#ua">ua()</a></li>
-      <li><a href="#hex_to_ascii">hex_to_ascii()</a></li>
-      <li><a href="#ascii_to_hex">ascii_to_hex()</a></li>
-      <li><a href="#canonical_domain">canonical_domain()</a></li>
-      <li><a href="#canonical_path">canonical_path()</a></li>
-      <li><a href="#canonical">canonical()</a></li>
-      <li><a href="#full_hashes">full_hashes()</a></li>
       <li><a href="#request_full_hash">request_full_hash()</a></li>
       <li><a href="#parse_full_hashes">parse_full_hashes()</a></li>
     </ul>
   </li>
+  <li><a href="#PROXIES-AND-LOCAL-ADDRESSES">PROXIES AND LOCAL ADDRESSES</a></li>
   <li><a href="#SEE-ALSO">SEE ALSO</a></li>
   <li><a href="#AUTHOR">AUTHOR</a></li>
   <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
@@ -63,7 +57,7 @@
         my $gsb = Net::Google::SafeBrowsing4-&gt;new(
                 key     =&gt; &quot;my key&quot;,
                 storage =&gt; $storage,
-                logger  =&gt; Log4Perl-&gt;get_logger();
+                logger  =&gt; Log::Log4perl-&gt;get_logger();
         );
 
         $gsb-&gt;update();
@@ -81,7 +75,7 @@
 
 <p>The library passes most of the unit tests listed in the API documentation. See the documentation (<a href="https://developers.google.com/safe-browsing/v4/urls-hashing#canonicalization">https://developers.google.com/safe-browsing/v4/urls-hashing#canonicalization</a>) for more details about the unit tests.</p>
 
-<p>The Google Safe Browsing database must be stored and managed locally. <a href="/lib/Net/Google/SafeBrowsing4/File.html">Net::Google::SafeBrowsing4::File</a> uses files as the storage back-end. Other storage mechanisms (databases, memory, etc.) can be added and used transparently with this module.</p>
+<p>The Google Safe Browsing database must be stored and managed locally. <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4/File.html">Net::Google::SafeBrowsing4::File</a> uses files as the storage back-end. Other storage mechanisms (databases, memory, etc.) can be added and used transparently with this module.</p>
 
 <p>The source code is available on github at <a href="https://github.com/juliensobrier/Net-Google-SafeBrowsing4">https://github.com/juliensobrier/Net-Google-SafeBrowsing4</a>.</p>
 
@@ -164,7 +158,7 @@
 <dt id="storage">storage</dt>
 <dd>
 
-<p>Required. Object which handles the storage for the Google Safe Browsing database. See <a href="/lib/Net/Google/SafeBrowsing4/Storage.html">Net::Google::SafeBrowsing4::Storage</a> for more details.</p>
+<p>Required. Object which handles the storage for the Google Safe Browsing database. See <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4/Storage.html">Net::Google::SafeBrowsing4::Storage</a> for more details.</p>
 
 </dd>
 <dt id="lists">lists</dt>
@@ -176,7 +170,7 @@
 <dt id="logger">logger</dt>
 <dd>
 
-<p>Optional. Log4Perl compatible object reference. By default this option is unset, making Net::Google::SafeBrowsing4 silent.</p>
+<p>Optional. <a href="http:/search.cpan.org?query=/../../../../../../../usr/share/perl5/Log/Log4perl.html">Log::Log4perl</a> compatible object reference. By default this option is unset, making Net::Google::SafeBrowsing4 silent.</p>
 
 </dd>
 <dt id="perf">perf</dt>
@@ -191,16 +185,22 @@
 <p>Optional. Google Safe Browsing version. 4 by default</p>
 
 </dd>
+<dt id="http_agent">http_agent</dt>
+<dd>
+
+<p>Optional. <a href="http:/search.cpan.org?query=/../../../../../../../usr/share/perl5/LWP/UserAgent.html">LWP::UserAgent</a> to use for HTTPS requests. Use this option for advanced networking options, like <a href="#PROXIES-AND-LOCAL-ADDRESSES">proxies or local addresses</a>.</p>
+
+</dd>
 <dt id="http_timeout">http_timeout</dt>
 <dd>
 
-<p>Optional. Network timeout setting for <a href="/../../../../../../../usr/share/perl5/LWP/UserAgent.html">LWP::UserAgent</a> (60 seconds by default)</p>
+<p>Optional. Network timeout setting for <a href="http:/search.cpan.org?query=/../../../../../../../usr/share/perl5/LWP/UserAgent.html">LWP::UserAgent</a> (60 seconds by default)</p>
 
 </dd>
 <dt id="http_compression">http_compression</dt>
 <dd>
 
-<p>Optional. List of accepted compressions for HTTP response. Enabling all supported compressions reported by <a href="/../../../../../../../usr/share/perl5/HTTP/Message.html">HTTP::Message</a> by default.</p>
+<p>Optional. List of accepted compressions for HTTP response. Enabling all supported compressions reported by <a href="http:/search.cpan.org?query=/../../../../../../../usr/share/perl5/HTTP/Message.html">HTTP::Message</a> by default.</p>
 
 </dd>
 </dl>
@@ -266,7 +266,7 @@
 <dt id="lists2">lists</dt>
 <dd>
 
-<p>Optional. Lookup against pecific lists. Use the list(s) from new() by default.</p>
+<p>Optional. Lookup against specific lists. Use the list(s) from new() by default.</p>
 
 </dd>
 <dt id="url">url</dt>
@@ -305,7 +305,7 @@
 
 <h2 id="lookup_suffix">lookup_suffix()</h2>
 
-<p>Lookup a host prefix.</p>
+<p>Lookup uri hashes..</p>
 
 <h2 id="make_lists">make_lists()</h2>
 
@@ -319,36 +319,6 @@
 
 <p>Format the list objects for update requests.</p>
 
-<h2 id="ua">ua()</h2>
-
-<p>Create LWP::UserAgent to make HTTP requests to Google.</p>
-
-<h2 id="hex_to_ascii">hex_to_ascii()</h2>
-
-<p>Transform hexadecimal strings to printable ASCII strings. Used mainly for debugging.</p>
-
-<pre><code>  print $gsb-&gt;hex_to_ascii(&#39;hex value&#39;);</code></pre>
-
-<h2 id="ascii_to_hex">ascii_to_hex()</h2>
-
-<p>Transform ASCII strings to hexadecimal strings.</p>
-
-<h2 id="canonical_domain">canonical_domain()</h2>
-
-<p>Find all canonical domains a domain.</p>
-
-<h2 id="canonical_path">canonical_path()</h2>
-
-<p>Find all canonical paths for a URL.</p>
-
-<h2 id="canonical">canonical()</h2>
-
-<p>Find all canonical URLs for a URL.</p>
-
-<h2 id="full_hashes">full_hashes()</h2>
-
-<p>Return all possible full hashes for a URL.</p>
-
 <h2 id="request_full_hash">request_full_hash()</h2>
 
 <p>Request full full hashes for specific prefixes from Google.</p>
@@ -357,13 +327,56 @@
 
 <p>Process the request for full hashes from Google.</p>
 
+<h1 id="PROXIES-AND-LOCAL-ADDRESSES">PROXIES AND LOCAL ADDRESSES</h1>
+
+<p>To use a proxy or select the network interface to use, simply create and set up an <a href="http:/search.cpan.org?query=/../../../../../../../usr/share/perl5/LWP/UserAgent.html">LWP::UserAgent</a> object and pass it to the constructor:</p>
+
+<pre><code>        use LWP::UserAgent;
+        use Net::Google::SafeBrowsing4;
+        use Net::Google::SafeBrowsing4::File;
+
+        my $ua = LWP::UserAgent-&gt;new();
+        $ua-&gt;env_proxy();
+
+        # $ua-&gt;local_address(&quot;192.168.0.14&quot;);
+
+        my $gsb = Net::Google::SafeBrowsing4-&gt;new(
+                key                     =&gt; &quot;my-api-key&quot;,
+                storage         =&gt; Net::Google::SafeBrowsing4::File-&gt;new(path =&gt; &quot;.&quot;),
+                http_agent      =&gt; $ua,
+        );</code></pre>
+
+<p>Note that the <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4.html">Net::Google::SafeBrowsing4</a> object will override certain LWP properties:</p>
+
+<dl>
+
+<dt id="timeout">timeout</dt>
+<dd>
+
+<p>The network timeout will be set according to the <code>http_timeout</code> constructor parameter.</p>
+
+</dd>
+<dt id="Content-Type">Content-Type</dt>
+<dd>
+
+<p>The Content-Type default header will be set to <i>application/json</i> for HTTPS Requests.</p>
+
+</dd>
+<dt id="Accept-Encoding">Accept-Encoding</dt>
+<dd>
+
+<p>The Accept-Encoding default header will be set according to the <code>http_compression</code> constructor parameter.</p>
+
+</dd>
+</dl>
+
 <h1 id="SEE-ALSO">SEE ALSO</h1>
 
-<p>See <a href="/lib/Net/Google/SafeBrowsing4.html">Net::Google::SafeBrowsing4</a> for handling Google Safe Browsing v4.</p>
+<p>See <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4/URI.html">Net::Google::SafeBrowsing4::URI</a> about URI parsing for Google Safe Browsing v4.</p>
 
-<p>See <a href="/lib/Net/Google/SafeBrowsing4/Storage.html">Net::Google::SafeBrowsing4::Storage</a> for the list of public functions.</p>
+<p>See <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4/Storage.html">Net::Google::SafeBrowsing4::Storage</a> for the list of public functions.</p>
 
-<p>See <a href="/lib/Net/Google/SafeBrowsing4/File.html">Net::Google::SafeBrowsing4::File</a> for a back-end storage using files.</p>
+<p>See <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4/File.html">Net::Google::SafeBrowsing4::File</a> for a back-end storage using files.</p>
 
 <p>Google Safe Browsing v4 API: <a href="https://developers.google.com/safe-browsing/v4/">https://developers.google.com/safe-browsing/v4/</a></p>
 

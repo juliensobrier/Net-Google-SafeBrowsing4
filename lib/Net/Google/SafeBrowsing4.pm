@@ -33,7 +33,7 @@ Net::Google::SafeBrowsing4 - Perl extension for the Google Safe Browsing v4 API.
 	my $gsb = Net::Google::SafeBrowsing4->new(
 		key 	=> "my key",
 		storage	=> $storage,
-		logger	=> Log4Perl->get_logger();
+		logger	=> Log::Log4perl->get_logger();
 	);
 
 	$gsb->update();
@@ -141,7 +141,7 @@ Optional. The Google Safe Browsing lists to handle. By default, handles all list
 
 =item logger
 
-Optional. Log4Perl compatible object reference. By default this option is unset, making Net::Google::SafeBrowsing4 silent.
+Optional. L<Log::Log4perl> compatible object reference. By default this option is unset, making Net::Google::SafeBrowsing4 silent.
 
 =item perf
 
@@ -150,6 +150,11 @@ Optional. Set to 1 to enable performance information logging. Needs a I<logger>,
 =item version
 
 Optional. Google Safe Browsing version. 4 by default
+
+=item http_agent
+
+Optional. L<LWP::UserAgent> to use for HTTPS requests. Use this option for advanced networking options,
+like L<proxies or local addresses|/"PROXIES AND LOCAL ADDRESSES">.
 
 =item http_timeout
 
@@ -176,6 +181,7 @@ sub new {
 		perf		=> 0,
 		logger		=> undef,
 
+		http_agent	=> LWP::UserAgent->new(),
 		http_timeout => 60,
 		http_compression => '' . HTTP::Message->decodable(),
 
@@ -187,10 +193,19 @@ sub new {
 		return undef;
 	}
 
+	if (!$self->{http_agent}) {
+		$self->{logger} && $self->{logger}->error("Net::Google::SafeBrowsing4 needs an LWP::UserAgent!");
+		return undef;
+	}
+	$self->{http_agent}->timeout($self->{http_timeout});
+	$self->{http_agent}->default_header("Content-Type" => "application/json");
+	$self->{http_agent}->default_header("Accept-Encoding" => $self->{http_compression});
+
 	if (!exists($self->{storage})) {
 		use Net::Google::SafeBrowsing4::Storage;
 		$self->{storage} = Net::Google::SafeBrowsing4::Storage->new();
 	}
+
 	if (ref($self->{list}) ne 'ARRAY') {
 		$self->{list} = [$self->{list}];
 	}
@@ -262,7 +277,7 @@ sub update {
 
 	my $last_update = time();
 
-	my $response = $self->ua->post(
+	my $response = $self->{http_agent}->post(
 		$self->{base} . "/threatListUpdates:fetch?key=" . $self->{key},
 		"Content-Type" => "application/json",
 		Content => encode_json($info)
@@ -438,7 +453,7 @@ Return an array reference of all the lists:
 sub get_lists {
 	my ($self, %args) = @_;
 
-	my $response = $self->ua->get(
+	my $response = $self->{http_agent}->get(
 		$self->{base} . "/threatLists?key=" . $self->{key},
 		"Content-Type" => "application/json"
 	);
@@ -617,30 +632,6 @@ sub make_lists_for_update {
 	return @lists;
 }
 
-=head2 ua()
-
-Create LWP::UserAgent to make HTTP requests to Google.
-
-=cut
-
-sub ua {
-	my ($self, %args) = @_;
-
-	if (!exists($self->{ua})) {
-		my $ua = LWP::UserAgent->new();
-		$ua->timeout($self->{http_timeout});
-		$ua->default_header("Content-Type" => "application/json");
-
-		if ($self->{http_compression}) {
-			$ua->default_header("Accept-Encoding" => $self->{http_compression});
-		}
-
-		$self->{ua} = $ua;
-	}
-
-	return $self->{ua};
-}
-
 =head2 request_full_hash()
 
 Request full full hashes for specific prefixes from Google.
@@ -694,7 +685,7 @@ sub request_full_hash {
 		threatEntries		=> [ map { { hash => $_ } } keys(%hashes) ],
 	};
 
-	my $response = $self->ua()->post(
+	my $response = $self->{http_agent}->post(
 		$self->{base} . "/fullHashes:find?key=" . $self->{key},
 		"Content-Type" => "application/json",
 		Content => encode_json($info)
@@ -781,11 +772,46 @@ sub parse_full_hashes {
 	return @hashes;
 }
 
+=head1 PROXIES AND LOCAL ADDRESSES
 
+To use a proxy or select the network interface to use, simply create and set up an L<LWP::UserAgent> object and pass it to the constructor:
+
+	use LWP::UserAgent;
+	use Net::Google::SafeBrowsing4;
+	use Net::Google::SafeBrowsing4::File;
+
+	my $ua = LWP::UserAgent->new();
+	$ua->env_proxy();
+
+	# $ua->local_address("192.168.0.14");
+
+	my $gsb = Net::Google::SafeBrowsing4->new(
+		key			=> "my-api-key",
+		storage		=> Net::Google::SafeBrowsing4::File->new(path => "."),
+		http_agent	=> $ua,
+	);
+
+Note that the L<Net::Google::SafeBrowsing4> object will override certain LWP properties:
+
+=over
+
+=item timeout
+
+The network timeout will be set according to the C<http_timeout> constructor parameter.
+
+=item Content-Type
+
+The Content-Type default header will be set to I<application/json> for HTTPS Requests.
+
+=item Accept-Encoding
+
+The Accept-Encoding default header will be set according to the C<http_compression> constructor parameter.
+
+=back
 
 =head1 SEE ALSO
 
-See L<Net::Google::SafeBrowsing4> for handling Google Safe Browsing v4.
+See L<Net::Google::SafeBrowsing4::URI> about URI parsing for Google Safe Browsing v4.
 
 See L<Net::Google::SafeBrowsing4::Storage> for the list of public functions.
 
