@@ -182,6 +182,11 @@ sub new {
 		%args,
 	};
 
+	if (!$self->{key}) {
+		$self->{logger} && $self->{logger}->error("Net::Google::SafeBrowsing4 needs an API key!");
+		return undef;
+	}
+
 	if (!exists($self->{storage})) {
 		use Net::Google::SafeBrowsing4::Storage;
 		$self->{storage} = Net::Google::SafeBrowsing4::Storage->new();
