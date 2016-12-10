@@ -180,6 +180,7 @@ sub new {
 		last_error	=> '',
 		perf		=> 0,
 		logger		=> undef,
+		storage		=> undef,
 
 		http_agent	=> LWP::UserAgent->new(),
 		http_timeout => 60,
@@ -201,18 +202,18 @@ sub new {
 	$self->{http_agent}->default_header("Content-Type" => "application/json");
 	$self->{http_agent}->default_header("Accept-Encoding" => $self->{http_compression});
 
-	if (!exists($self->{storage})) {
-		use Net::Google::SafeBrowsing4::Storage;
-		$self->{storage} = Net::Google::SafeBrowsing4::Storage->new();
+	if (!$self->{storage}) {
+		$self->{logger} && $self->{logger}->error("Net::Google::SafeBrowsing4 needs a Storage object!");
+		return undef;
 	}
 
-	if (ref($self->{list}) ne 'ARRAY') {
-		$self->{list} = [$self->{list}];
+	if (ref($self->{lists}) ne 'ARRAY') {
+		$self->{lists} = [$self->{lists}];
 	}
 
 	$self->{base} = join("/", $self->{base}, "v" . $self->{version});
 
-	bless($self, $class) or croak("Can't bless $class: $!");
+	bless($self, $class);
 	return $self;
 }
 
@@ -255,7 +256,6 @@ sub update {
 	my $force = $args{force} || 0;
 
 	# Check if it is too early
-	# TODO: some lists may have been updated , others not. Update time has to be by list
 	my $time = $self->{storage}->next_update();
 	if ($time > time() && $force == 0) {
 		$self->{logger} && $self->{logger}->debug("Too early to update the local storage");
@@ -288,17 +288,13 @@ sub update {
 
 	if (! $response->is_success()) {
 		$self->{logger} && $self->{logger}->error("Update request failed");
-
 		$self->update_error('time' => time());
-
 		return SERVER_ERROR;
 	}
 
 	my $result = NO_DATA;
-
 	my $json = decode_json($response->decoded_content(encoding => 'none'));
 	my @data = @{ $json->{listUpdateResponses} };
-
 	foreach my $list (@data) {
 		my $threat = $list->{threatType};			# MALWARE
 		my $threatEntry = $list->{threatEntryType};	# URL
@@ -413,6 +409,8 @@ Required. URL to lookup.
 sub lookup {
 	my ($self, %args) = @_;
 	my $lists = $args{lists} || $self->{lists} || [];
+
+	# Parse URI
 	my $url = Net::Google::SafeBrowsing4::URI->new($args{url}) || return ();
 
 	# Calculate full hashes

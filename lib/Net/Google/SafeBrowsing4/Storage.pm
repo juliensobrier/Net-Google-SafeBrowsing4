@@ -15,15 +15,15 @@ Net::Google::SafeBrowsing4::Storage - Base class for storing the Google Safe Bro
 
 =head1 SYNOPSIS
 
-  package Net::Google::SafeBrowsing4::File;
+	package Net::Google::SafeBrowsing4::File;
 
-  use base 'Net::Google::SafeBrowsing4::Storage';
+	use base qw(Net::Google::SafeBrowsing4::Storage);
 
 =head1 DESCRIPTION
 
 This is the base class for implementing a storage mechanism for the Google Safe Browsing v4 database. See L<Net::Google::SafeBrowsing4::File> for an example of implementation.
 
-This module cannot be used on its own as it does not actually store anything. All methods should redefined. Check the code to see which arguments are used, and what should be returned.
+This module cannot be used on its own as it does not actually store anything. All public methods should redefined. Check the code to see which arguments are used, and what should be returned.
 
 =cut
 
@@ -38,7 +38,10 @@ This module cannot be used on its own as it does not actually store anything. Al
 
 	Create a Net::Google::SafeBrowsing4::Storage object
 
-	my $storage => Net::Google::SafeBrowsing4::Storage->new();
+	my $storage => Net::Google::SafeBrowsing4::Storage->new(
+		# Constructor parameters vary based on the implementation
+		...
+	);
 
 =cut
 
@@ -552,58 +555,9 @@ sub get_full_hash_error {
 	return undef;
 }
 
-
-=head1 PRIVATE FUNCTIONS
-
-These functions are not intended for debugging purpose.
-
-=over 4
-
-=back
-
-=head2 hex_to_ascii()
-
-Transform hexadecimal strings to printable ASCII strings. Used mainly for debugging.
-
-  print $storage->hex_to_ascii('hex value');
-
-=cut
-
-sub hex_to_ascii {
-	my ($self, $hex) = @_;
-	my $ascii = '';
-
-	while (length($hex) > 0) {
-		$ascii .= sprintf("%02x",  ord( substr($hex, 0, 1, '') ) );
-	}
-
-	return $ascii;
-}
-
-=head2 ascii_to_hex()
-
-Transform ASCII strings to hexadecimal strings.
-
-	  print $storage->ascii_to_hex('ascii value');
-
-=cut
-
-sub ascii_to_hex {
-	my ($self, $ascii) = @_;
-
-	my $hex = '';
-	for (my $i = 0; $i < int(length($ascii) / 2); $i++) {
-		$hex .= chr hex( substr($ascii, $i * 2, 2) );
-	}
-
-	return $hex;
-}
-
-
 =head1 CHANGELOG
 
 =over 4
-
 
 =item 0.1
 

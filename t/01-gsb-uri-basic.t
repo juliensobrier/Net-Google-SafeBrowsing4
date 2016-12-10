@@ -33,6 +33,5 @@ SKIP: {
 		skip("Test::Pod::Coverage is not installed Pod coverage test skipped.");
 	}
 
-	;
-    pod_coverage_ok("Net::Google::SafeBrowsing4::URI");
+	pod_coverage_ok("Net::Google::SafeBrowsing4::URI");
 }
