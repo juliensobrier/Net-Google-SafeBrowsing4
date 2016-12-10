@@ -38,7 +38,6 @@ This module requires these other modules and libraries:
   Net::IP::Lite
   Path::Tiny
   Storable
-  String::HexConvert
   Test::More
   Text::Trim
   Time::HiRes

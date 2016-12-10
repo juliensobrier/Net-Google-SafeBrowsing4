@@ -1,7 +1,7 @@
-#!perl
+#!/usr/bin/perl
 
 # ABSTRACT: Basic tests about the Net::Google::SafeBrowsing4::URI class
-# Note: More complicated normalization, ectraction and hashing tests should be separated.
+# Note: More complicated normalization, extraction and hashing tests should be separated.
 
 use strict;
 use warnings;
@@ -19,7 +19,11 @@ my $gsb_uri;
 $gsb_uri = new_ok('Net::Google::SafeBrowsing4::URI' => [$uri], qw(Net::Google::SafeBrowsing4::URI));
 can_ok($gsb_uri, qw{
 	as_string
+	generate_lookupuris
+	hash
 });
+
+is(Net::Google::SafeBrowsing4::URI->new(), undef, "Constructor needs parameter.");
 
 SKIP: {
 	eval {

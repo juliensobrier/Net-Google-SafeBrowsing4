@@ -1,4 +1,4 @@
-#!perl
+#!/usr/bin/perl
 
 # ABSTRACT: URI Normalization tests for Net::Google::SafeBrowsing4::URI class
 
@@ -9,7 +9,6 @@ use Test::More 0.92 qw(no_plan);
 
 use Net::Google::SafeBrowsing4::URI;
 
-
 my @invalid_uris = (
 	# Empty, null host is not valid
 	undef,
@@ -18,12 +17,7 @@ my @invalid_uris = (
 	'mailto:my@email.site',
 	"shihtzu://google.com",
 	"http://:80/index.html",
-	# Single number IPv4 (decimal/octal/hexadecimal) out of range
-	#'http://4294967296/',
-	#'http://00000040000000000/',
-	#'http://0x100000000/',
-	# Dotted-decimal IPv4 with too much elements:
-	#'http://195.56.65.250.1'
+	'gopher:google.com',
 );
 
 my %uris = (
@@ -73,6 +67,21 @@ my %uris = (
 	'username@google.com' => 'http://google.com/',
 	# Removes username even with more @ marks
 	'http://user@@name@google.com/' => 'http://google.com/',
+	# Extra dots in hostname
+	'foo...com' => 'http://foo.com/',
+	'FoO..com' => 'http://foo.com/',
+	'foo.com...' => 'http://foo.com/',
+	'...foo.com' => 'http://foo.com/',
+	# Relative path tests
+	'http://www.google.com/a/../b/../c' => 'http://www.google.com/c',
+	'http://www.google.com/a/../b/..' => 'http://www.google.com/',
+	'http://www.google.com/a/../b/..?foo' => 'http://www.google.com/?foo',
+	# Multiple hashmark
+	'http://www.google.com/#a#b' => 'http://www.google.com/',
+	'http://www.google.com/#a#b#c' => 'http://www.google.com/',
+	# Some basic IP tests
+	'http://16843009/index.html' => 'http://1.1.1.1/index.html',
+	'http://1/index.html' => 'http://0.0.0.1/index.html'
 );
 
 foreach my $uri (sort { ($a || '') cmp ($b || '') } @invalid_uris) {

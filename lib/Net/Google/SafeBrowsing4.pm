@@ -11,10 +11,8 @@ use JSON::XS;
 use List::Util qw(first);
 use LWP::UserAgent;
 use MIME::Base64;
-use String::HexConvert;
 use Text::Trim;
 use Time::HiRes qw(time);
-use URI;
 
 use Net::Google::SafeBrowsing4::URI;
 
@@ -35,7 +33,7 @@ Net::Google::SafeBrowsing4 - Perl extension for the Google Safe Browsing v4 API.
 	my $gsb = Net::Google::SafeBrowsing4->new(
 		key 	=> "my key",
 		storage	=> $storage,
-		logger	=> Log4Perl->get_logger();
+		logger	=> Log::Log4perl->get_logger();
 	);
 
 	$gsb->update();
@@ -143,7 +141,7 @@ Optional. The Google Safe Browsing lists to handle. By default, handles all list
 
 =item logger
 
-Optional. Log4Perl compatible object reference. By default this option is unset, making Net::Google::SafeBrowsing4 silent.
+Optional. L<Log::Log4perl> compatible object reference. By default this option is unset, making Net::Google::SafeBrowsing4 silent.
 
 =item perf
 
@@ -152,6 +150,11 @@ Optional. Set to 1 to enable performance information logging. Needs a I<logger>,
 =item version
 
 Optional. Google Safe Browsing version. 4 by default
+
+=item http_agent
+
+Optional. L<LWP::UserAgent> to use for HTTPS requests. Use this option for advanced networking options,
+like L<proxies or local addresses|/"PROXIES AND LOCAL ADDRESSES">.
 
 =item http_timeout
 
@@ -178,16 +181,31 @@ sub new {
 		perf		=> 0,
 		logger		=> undef,
 
+		http_agent	=> LWP::UserAgent->new(),
 		http_timeout => 60,
 		http_compression => '' . HTTP::Message->decodable(),
 
 		%args,
 	};
 
+	if (!$self->{key}) {
+		$self->{logger} && $self->{logger}->error("Net::Google::SafeBrowsing4 needs an API key!");
+		return undef;
+	}
+
+	if (!$self->{http_agent}) {
+		$self->{logger} && $self->{logger}->error("Net::Google::SafeBrowsing4 needs an LWP::UserAgent!");
+		return undef;
+	}
+	$self->{http_agent}->timeout($self->{http_timeout});
+	$self->{http_agent}->default_header("Content-Type" => "application/json");
+	$self->{http_agent}->default_header("Accept-Encoding" => $self->{http_compression});
+
 	if (!exists($self->{storage})) {
 		use Net::Google::SafeBrowsing4::Storage;
 		$self->{storage} = Net::Google::SafeBrowsing4::Storage->new();
 	}
+
 	if (ref($self->{list}) ne 'ARRAY') {
 		$self->{list} = [$self->{list}];
 	}
@@ -259,7 +277,7 @@ sub update {
 
 	my $last_update = time();
 
-	my $response = $self->ua->post(
+	my $response = $self->{http_agent}->post(
 		$self->{base} . "/threatListUpdates:fetch?key=" . $self->{key},
 		"Content-Type" => "application/json",
 		Content => encode_json($info)
@@ -382,7 +400,7 @@ Arguments
 
 =item lists
 
-Optional. Lookup against pecific lists. Use the list(s) from new() by default.
+Optional. Lookup against specific lists. Use the list(s) from new() by default.
 
 =item url
 
@@ -397,10 +415,14 @@ sub lookup {
 	my $lists = $args{lists} || $self->{lists} || [];
 	my $url = Net::Google::SafeBrowsing4::URI->new($args{url}) || return ();
 
-	my $all_lists = $self->make_lists(lists => $lists);
+	# Calculate full hashes
+	my $start = time();
+	my @full_hashes = map { $_->hash() } $url->generate_lookupuris();
+	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hashes from URL: ", time() - $start,  "s ");
 
-	my @hashes = $self->lookup_suffix(lists => $all_lists, url => $url->as_string());
-	return @hashes;
+	my $all_lists = $self->make_lists(lists => $lists);
+	my @matched_hashes = $self->lookup_suffix(lists => $all_lists, hashes => \@full_hashes);
+	return @matched_hashes;
 }
 
 
@@ -431,7 +453,7 @@ Return an array reference of all the lists:
 sub get_lists {
 	my ($self, %args) = @_;
 
-	my $response = $self->ua->get(
+	my $response = $self->{http_agent}->get(
 		$self->{base} . "/threatLists?key=" . $self->{key},
 		"Content-Type" => "application/json"
 	);
@@ -451,36 +473,28 @@ These functions are not intended to be used externally.
 
 =head2 lookup_suffix()
 
-Lookup a host prefix.
+Lookup uri hashes..
 
 =cut
 
 sub lookup_suffix {
 	my ($self, %args) = @_;
 	my $lists = $args{lists} || croak("Missing lists\n");
-	my $url = $args{url} || return '';
-
-	# Calculate prefixes
-	my $start = time();
-	my @full_hashes = $self->full_hashes($url);
-	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hashes from URL: ", time() - $start,  "s ");
-
+	my $hashes = $args{hashes} || return '';
 
  	# Local lookup
- 	$start = time();
- 	my @prefixes = $self->{storage}->get_prefixes(hashes => [@full_hashes], lists => $lists);
+ 	my $start = time();
+ 	my @prefixes = $self->{storage}->get_prefixes(hashes => $hashes, lists => $lists);
 	$self->{perf} && $self->{logger} && $self->{logger}->debug("Local lookup: ", time() - $start,  "s ");
-
 	if (scalar(@prefixes) == 0) {
 		$self->{logger} && $self->{logger}->debug("No hit in local lookup");
 		return ();
 	}
-
 	$self->{logger} && $self->{logger}->debug("Found ", scalar(@prefixes), " prefix(s) in local database");
 
 	# get stored full hashes
 	$start = time();
-	foreach my $hash (@full_hashes) {
+	foreach my $hash (@{$hashes}) {
 		my @hashes = $self->{storage}->get_full_hashes(hash => $hash, lists => $lists);
 
 		if (scalar(@hashes) > 0) {
@@ -500,7 +514,7 @@ sub lookup_suffix {
 	# Make sure the full hash match one of the full hashes for a give URL
 	my @results = ();
 	$start = time();
-	foreach my $full_hash (@full_hashes) {
+	foreach my $full_hash (@$hashes) {
 		my @matches = grep { $_->{hash} eq $full_hash } @hashes;
 		push(@results, @matches) if (scalar(@matches) > 0);
 	}
@@ -618,180 +632,6 @@ sub make_lists_for_update {
 	return @lists;
 }
 
-=head2 ua()
-
-Create LWP::UserAgent to make HTTP requests to Google.
-
-=cut
-
-sub ua {
-	my ($self, %args) = @_;
-
-	if (!exists($self->{ua})) {
-		my $ua = LWP::UserAgent->new();
-		$ua->timeout($self->{http_timeout});
-		$ua->default_header("Content-Type" => "application/json");
-
-		if ($self->{http_compression}) {
-			$ua->default_header("Accept-Encoding" => $self->{http_compression});
-		}
-
-		$self->{ua} = $ua;
-	}
-
-	return $self->{ua};
-}
-
-
-=head2 hex_to_ascii()
-
-Transform hexadecimal strings to printable ASCII strings. Used mainly for debugging.
-
-  print $gsb->hex_to_ascii('hex value');
-
-=cut
-
-sub hex_to_ascii {
-	my ($self, $hex) = @_;
-
-	return String::HexConvert::ascii_to_hex($hex);
-}
-
-
-=head2 ascii_to_hex()
-
-Transform ASCII strings to hexadecimal strings.
-
-=cut
-
-sub ascii_to_hex {
-	my ($self, $ascii) = @_;
-
-	my $hex = '';
-	for (my $i = 0; $i < int(length($ascii) / 2); $i++) {
-		$hex .= chr(hex( substr($ascii, $i * 2, 2) ));
-	}
-
-	return $hex;
-}
-
-
-=head2 canonical_domain()
-
-Find all canonical domains a domain.
-
-=cut
-
-sub canonical_domain {
-	my ($self, $domain) = @_;
-
-	# Remove all leading and trailing dots.
-	$domain =~ s/^\.+//;
-	$domain =~ s/\.+$//;
-
-	# Replace consecutive dots with a single dot.
-	while ($domain =~ s/\.\.+/\./g) { }
-
-	# Lowercase the whole string.
-	$domain = lc($domain);
-
-	my @domains = ($domain);
-
-
-	if ($domain =~ /^\d+\.\d+\.\d+\.\d+$/) { # loose check for IP address, should be enough
-		return @domains;
-	}
-
-	my @parts = split(/\./, $domain);
-	splice(@parts, 0, -6); # take 5 top most compoments
-
-	while (scalar(@parts) > 2) {
-		shift(@parts);
-		push(@domains, join(".", @parts) );
-	}
-
-	return @domains;
-}
-
-=head2 canonical_path()
-
-Find all canonical paths for a URL.
-
-=cut
-
-sub canonical_path {
-	my ($self, $path) 	= @_;
-
-	my @paths = ($path); # return full path
-
-	# without query string
-	if ($path =~ /\?/) {
-		$path =~ s/\?.*$//;
-
-		push(@paths, $path);
-	}
-
-	my @parts = split(/\//, $path);
-	if (scalar(@parts) > 4) {
-		@parts = splice(@parts, -4, 4);
-	}
-
-	my $previous = '';
-	while (scalar(@parts) > 1) {
-		my $val = shift(@parts);
-		$previous .= "$val/";
-
-		push(@paths, $previous);
-	}
-
-	return @paths;
-}
-
-=head2 canonical()
-
-Find all canonical URLs for a URL.
-
-=cut
-
-sub canonical {
-	my ($self, $url) = @_;
-
-	my @urls = ();
-
-	my $uri = URI->new($url);
-	my @domains = $self->canonical_domain($uri->host());
-	my @paths = $self->canonical_path($uri->path_query());
-
-	foreach my $domain (@domains) {
-		foreach my $path (@paths) {
-			push(@urls, "$domain$path");
-		}
-	}
-
-	return @urls;
-}
-
-
-=head2 full_hashes()
-
-Return all possible full hashes for a URL.
-
-=cut
-
-sub full_hashes {
-	my ($self, $url) = @_;
-
-	my @urls = $self->canonical($url);
-	my @hashes = ();
-
-	foreach my $url (@urls) {
-		push(@hashes, sha256($url));
-		$self->{logger} && $self->{logger}->debug("$url " . $self->hex_to_ascii(sha256($url)));
-	}
-
-	return @hashes;
-}
-
 =head2 request_full_hash()
 
 Request full full hashes for specific prefixes from Google.
@@ -845,7 +685,7 @@ sub request_full_hash {
 		threatEntries		=> [ map { { hash => $_ } } keys(%hashes) ],
 	};
 
-	my $response = $self->ua()->post(
+	my $response = $self->{http_agent}->post(
 		$self->{base} . "/fullHashes:find?key=" . $self->{key},
 		"Content-Type" => "application/json",
 		Content => encode_json($info)
@@ -932,11 +772,46 @@ sub parse_full_hashes {
 	return @hashes;
 }
 
+=head1 PROXIES AND LOCAL ADDRESSES
 
+To use a proxy or select the network interface to use, simply create and set up an L<LWP::UserAgent> object and pass it to the constructor:
+
+	use LWP::UserAgent;
+	use Net::Google::SafeBrowsing4;
+	use Net::Google::SafeBrowsing4::File;
+
+	my $ua = LWP::UserAgent->new();
+	$ua->env_proxy();
+
+	# $ua->local_address("192.168.0.14");
+
+	my $gsb = Net::Google::SafeBrowsing4->new(
+		key			=> "my-api-key",
+		storage		=> Net::Google::SafeBrowsing4::File->new(path => "."),
+		http_agent	=> $ua,
+	);
+
+Note that the L<Net::Google::SafeBrowsing4> object will override certain LWP properties:
+
+=over
+
+=item timeout
+
+The network timeout will be set according to the C<http_timeout> constructor parameter.
+
+=item Content-Type
+
+The Content-Type default header will be set to I<application/json> for HTTPS Requests.
+
+=item Accept-Encoding
+
+The Accept-Encoding default header will be set according to the C<http_compression> constructor parameter.
+
+=back
 
 =head1 SEE ALSO
 
-See L<Net::Google::SafeBrowsing4> for handling Google Safe Browsing v4.
+See L<Net::Google::SafeBrowsing4::URI> about URI parsing for Google Safe Browsing v4.
 
 See L<Net::Google::SafeBrowsing4::Storage> for the list of public functions.
 

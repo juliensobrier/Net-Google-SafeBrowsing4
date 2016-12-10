@@ -3,6 +3,7 @@ package Net::Google::SafeBrowsing4::URI;
 use strict;
 use warnings;
 
+use Digest::SHA qw(sha256);
 use Net::IP::Lite qw();
 use URI;
 
@@ -54,7 +55,7 @@ sub new {
 	my $class = shift;
 	my @args = @_;
 
-	if (!scalar(@args) || !$args[0]) {
+	if ((scalar(@args) == 0) || !$args[0]) {
 		return undef;
 	}
 
@@ -62,8 +63,7 @@ sub new {
 		rawuri => $args[0],
 	};
 
-	bless($self, $class) or croak("Can't bless $class: $!");
-
+	bless($self, $class);
 	return $self->_normalize() ? $self : undef;
 }
 
@@ -81,6 +81,74 @@ sub as_string {
 	my $self = shift;
 
 	return $self->{uri};
+}
+
+=item generate_lookupuris
+
+Generates all partial/full URIs supported by Google SafeBrowsing. See "suffix/prefix expressions" topic in GSBv4 API reference.
+Returns a list of L<Net::Google::SafeBrowsing4::URI> objects.
+
+=cut
+
+sub generate_lookupuris {
+	my $self = shift;
+	my @uris = ();
+
+	$self->as_string() =~ /^(https?:\/\/)([^\/]+)(\/.*)$/i;
+	my ($scheme, $host, $path_query) = ($1, $2, $3);
+
+	# Collect host suffixes
+	my @domains = ();
+	if ($host !~ /^\d+\.\d+\.\d+\.\d+$/) {
+		my @parts = split(/\./, $host);
+		splice(@parts, 0, -6); # take 5 top most compoments
+
+		while (scalar(@parts) > 2) {
+			shift(@parts);
+			push(@domains, join(".", @parts) );
+		}
+	}
+	push(@domains, $host);
+
+	# Collect path & query prefixes
+	my @paths = ();
+	my @parts = split(/\//, $path_query);
+	my $part_count = scalar(@parts);
+	$part_count = $part_count > 4 ? 4 : $part_count - 1; # limit to 4
+	my $previous = "";
+	for (my $i = 0; $i < $part_count; $i++) {
+		$previous .= "/" . $parts[$i] ."/";
+		push(@paths, $previous);
+	}
+	if ($path_query =~ /^([^\?]+)\?.*$/) {
+		push(@paths, $1);
+	}
+	push(@paths, $path_query);
+
+	# Assemble the list of Net::Google::SafeBrowsing4::URI objects
+	foreach my $domain (@domains) {
+		foreach my $path (@paths) {
+			my $gsb_uri = Net::Google::SafeBrowsing4::URI->new($scheme . $domain . $path);
+			push(@uris, $gsb_uri);
+		}
+	}
+
+	return @uris;
+}
+
+=item hash
+
+Generates the SHA-256 hash of the URI (with scheme removed).
+
+=cut
+
+sub hash {
+	my $self = shift;
+
+	my $uri = $self->as_string();
+	$uri =~ s/^https?:\/\///i;
+
+	return sha256($uri);
 }
 
 =head1 PRIVATE METHODS
@@ -108,8 +176,10 @@ sub _normalize {
 
 	# Parse URI
 	my $uri_obj = URI->new($modified_rawuri);
-	if (ref($uri_obj) !~ /^URI::https?$/ && !$uri_obj->scheme()) {
-		$uri_obj = URI->new("http://" . $modified_rawuri);
+	if (ref($uri_obj) !~ /^URI::https?$/) {
+		if (!$uri_obj->scheme()) {
+			$uri_obj = URI->new("http://" . $modified_rawuri);
+		}
 	}
 	# Only http and https URIs are supported
 	if (ref($uri_obj) !~ /^URI::https?$/) {
@@ -191,7 +261,7 @@ sub _normalize_ip {
 	my $host = shift;
 
 	# Shortcut: If it doesn't look like an IPv4, then return early
-	if ($host !~ /^[[:xdigit:]x\.]+$/) {
+	if ($host !~ /^(?:0x[[:xdigit:]]+|\d+)(?:\.(?:0x[[:xdigit:]]+|\d+))*$/si) {
 		return $host;
 	}
 
@@ -218,11 +288,7 @@ sub _normalize_ip {
 	}
 
 	$ip = Net::IP::Lite->new($decimal);
-	if ($ip) {
-		return $ip->transform();
-	}
-
-	return $host;
+	return $ip->transform();
 }
 
 =over
@@ -263,7 +329,7 @@ sub _parse_ipv4_segment {
 	if ($segment =~ /^0+([0-7]+)$/) {
 		$decimal = oct($1);
 	}
-	elsif ($segment =~ /^0x0*([[:xdigit:]]+)$/) {
+	elsif ($segment =~ /^0x0*([[:xdigit:]]+)$/si) {
 		$decimal = hex($1);
 	}
 	elsif ($segment =~ /^[1-9]\d+$/) {
