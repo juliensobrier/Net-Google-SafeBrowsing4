@@ -426,7 +426,7 @@ sub lookup {
 
 =head2 get_lists()
 
-Get all the lists from Google Safe Browsing.
+Get all threat list names from Google Safe Browsing.
 
 	my $lists = $gsb->get_lists();
 
@@ -446,20 +446,40 @@ Return an array reference of all the lists:
 		...
 	]
 
+	or C<undef> on error. This method updates C<$gsb->{last_Error}> field.
+
 =cut
 
 sub get_lists {
-	my ($self, %args) = @_;
+	my ($self) = @_;
 
+	$self->{last_error} = '';
 	my $response = $self->{http_agent}->get(
 		$self->{base} . "/threatLists?key=" . $self->{key},
 		"Content-Type" => "application/json"
 	);
+	$self->{logger} && $self->{logger}->trace('Request:' . $response->request->as_string());
+	$self->{logger} && $self->{logger}->trace('Response:' . $response->as_string());
 
-	$self->{logger} && $self->{logger}->debug($response->request->as_string());
-	$self->{logger} && $self->{logger}->debug($response->as_string());
+	if (!$response->is_success()) {
+		$self->{last_error} = "get_lists: ". $response->status_line();
+		return undef;
+	}
 
-	my $info = decode_json($response->decoded_content(encoding => 'none'));
+	my $info;
+	eval {
+		$info = decode_json($response->decoded_content(encoding => 'none'));
+	};
+	if ($@ || ref($info) ne 'HASH') {
+		$self->{last_error} = "get_lists: Invalid Response: ". ($@ || "Data is an array not an object");
+		return undef;
+	}
+
+	if (!exists($info->{threatLists})) {
+		$self->{last_error} = "get_lists: Invalid Response: Data missing the right key";
+		return undef;
+	}
+
 	return $info->{threatLists};
 }
 

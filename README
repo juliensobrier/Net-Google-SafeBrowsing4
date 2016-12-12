@@ -38,6 +38,7 @@ This module requires these other modules and libraries:
   Net::IP::Lite
   Path::Tiny
   Storable
+  Test::LWP::UserAgent
   Test::More
   Text::Trim
   Time::HiRes
