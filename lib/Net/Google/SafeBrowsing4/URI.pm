@@ -326,10 +326,10 @@ sub _parse_ipv4_segment {
 	my $bits = shift;
 	my $decimal;
 
-	if ($segment =~ /^0+([0-7]+)$/) {
+	if ($segment =~ /^0+([0-7]{0,10}|[0-3][0-7]{10})$/) {
 		$decimal = oct($1);
 	}
-	elsif ($segment =~ /^0x0*([[:xdigit:]]+)$/si) {
+	elsif ($segment =~ /^0x0*([[:xdigit:]]{1,8})$/si) {
 		$decimal = hex($1);
 	}
 	elsif ($segment =~ /^[1-9]\d+$/) {
