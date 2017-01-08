@@ -51,9 +51,9 @@
 <h1 id="SYNOPSIS">SYNOPSIS</h1>
 
 <pre><code>        use Net::Google::SafeBrowsing4;
-        use Net::Google::SafeBrowsing4::File;
+        use Net::Google::SafeBrowsing4::Storage::File;
 
-        my $storage = Net::Google::SafeBrowsing4::File-&gt;new(path =&gt; &#39;.&#39;);
+        my $storage = Net::Google::SafeBrowsing4::Storage::File-&gt;new(path =&gt; &#39;.&#39;);
         my $gsb = Net::Google::SafeBrowsing4-&gt;new(
                 key     =&gt; &quot;my key&quot;,
                 storage =&gt; $storage,
@@ -75,7 +75,7 @@
 
 <p>The library passes most of the unit tests listed in the API documentation. See the documentation (<a href="https://developers.google.com/safe-browsing/v4/urls-hashing#canonicalization">https://developers.google.com/safe-browsing/v4/urls-hashing#canonicalization</a>) for more details about the unit tests.</p>
 
-<p>The Google Safe Browsing database must be stored and managed locally. <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4/File.html">Net::Google::SafeBrowsing4::File</a> uses files as the storage back-end. Other storage mechanisms (databases, memory, etc.) can be added and used transparently with this module.</p>
+<p>The Google Safe Browsing database must be stored and managed locally. <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4/Storage/File.html">Net::Google::SafeBrowsing4::Storage::File</a> uses files as the storage back-end. Other storage mechanisms (databases, memory, etc.) can be added and used transparently with this module.</p>
 
 <p>The source code is available on github at <a href="https://github.com/juliensobrier/Net-Google-SafeBrowsing4">https://github.com/juliensobrier/Net-Google-SafeBrowsing4</a>.</p>
 
@@ -135,7 +135,7 @@
 
 <pre><code>        my $gsb = Net::Google::SafeBrowsing4-&gt;new(
                 key             =&gt; &quot;my key&quot;,
-                storage =&gt; Net::Google::SafeBrowsing4::File-&gt;new(path =&gt; &#39;.&#39;),
+                storage =&gt; Net::Google::SafeBrowsing4::Storage::File-&gt;new(path =&gt; &#39;.&#39;),
                 lists   =&gt; [&quot;*/ANY_PLATFORM/URL&quot;],
         );</code></pre>
 
@@ -333,7 +333,7 @@
 
 <pre><code>        use LWP::UserAgent;
         use Net::Google::SafeBrowsing4;
-        use Net::Google::SafeBrowsing4::File;
+        use Net::Google::SafeBrowsing4::Storage::File;
 
         my $ua = LWP::UserAgent-&gt;new();
         $ua-&gt;env_proxy();
@@ -342,7 +342,7 @@
 
         my $gsb = Net::Google::SafeBrowsing4-&gt;new(
                 key                     =&gt; &quot;my-api-key&quot;,
-                storage         =&gt; Net::Google::SafeBrowsing4::File-&gt;new(path =&gt; &quot;.&quot;),
+                storage         =&gt; Net::Google::SafeBrowsing4::Storage::File-&gt;new(path =&gt; &quot;.&quot;),
                 http_agent      =&gt; $ua,
         );</code></pre>
 
@@ -376,7 +376,7 @@
 
 <p>See <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4/Storage.html">Net::Google::SafeBrowsing4::Storage</a> for the list of public functions.</p>
 
-<p>See <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4/File.html">Net::Google::SafeBrowsing4::File</a> for a back-end storage using files.</p>
+<p>See <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4/Storage/File.html">Net::Google::SafeBrowsing4::Storage::File</a> for a back-end storage using files.</p>
 
 <p>Google Safe Browsing v4 API: <a href="https://developers.google.com/safe-browsing/v4/">https://developers.google.com/safe-browsing/v4/</a></p>
 

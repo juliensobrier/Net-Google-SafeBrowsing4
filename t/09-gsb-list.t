@@ -11,7 +11,7 @@ use Test::LWP::UserAgent;
 use Test::More qw(no_plan);
 
 use Net::Google::SafeBrowsing4;
-use Net::Google::SafeBrowsing4::File;
+use Net::Google::SafeBrowsing4::Storage::File;
 
 
 sub prepare_test {
@@ -20,7 +20,7 @@ sub prepare_test {
 	my $lwp = Test::LWP::UserAgent->new();
 	my $gsb = Net::Google::SafeBrowsing4->new(
 		key => "random-api-key-random-api-key-random-ap",
-		storage => Net::Google::SafeBrowsing4::File->new(path => "."),
+		storage => Net::Google::SafeBrowsing4::Storage::File->new(path => "."),
 		http_agent => $lwp,
 	);
 

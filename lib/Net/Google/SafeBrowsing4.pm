@@ -27,9 +27,9 @@ Net::Google::SafeBrowsing4 - Perl extension for the Google Safe Browsing v4 API.
 =head1 SYNOPSIS
 
 	use Net::Google::SafeBrowsing4;
-	use Net::Google::SafeBrowsing4::File;
+	use Net::Google::SafeBrowsing4::Storage::File;
 
-	my $storage = Net::Google::SafeBrowsing4::File->new(path => '.');
+	my $storage = Net::Google::SafeBrowsing4::Storage::File->new(path => '.');
 	my $gsb = Net::Google::SafeBrowsing4->new(
 		key 	=> "my key",
 		storage	=> $storage,
@@ -51,7 +51,7 @@ Net::Google::SafeBrowsing4 implements the Google Safe Browsing v4 API.
 
 The library passes most of the unit tests listed in the API documentation. See the documentation (L<https://developers.google.com/safe-browsing/v4/urls-hashing#canonicalization>) for more details about the unit tests.
 
-The Google Safe Browsing database must be stored and managed locally. L<Net::Google::SafeBrowsing4::File> uses files as the storage back-end. Other storage mechanisms (databases, memory, etc.) can be added and used transparently with this module.
+The Google Safe Browsing database must be stored and managed locally. L<Net::Google::SafeBrowsing4::Storage::File> uses files as the storage back-end. Other storage mechanisms (databases, memory, etc.) can be added and used transparently with this module.
 
 The source code is available on github at L<https://github.com/juliensobrier/Net-Google-SafeBrowsing4>.
 
@@ -115,7 +115,7 @@ Create a Net::Google::SafeBrowsing4 object
 
 	my $gsb = Net::Google::SafeBrowsing4->new(
 		key		=> "my key",
-		storage	=> Net::Google::SafeBrowsing4::File->new(path => '.'),
+		storage	=> Net::Google::SafeBrowsing4::Storage::File->new(path => '.'),
 		lists	=> ["*/ANY_PLATFORM/URL"],
 	);
 
@@ -796,7 +796,7 @@ To use a proxy or select the network interface to use, simply create and set up 
 
 	use LWP::UserAgent;
 	use Net::Google::SafeBrowsing4;
-	use Net::Google::SafeBrowsing4::File;
+	use Net::Google::SafeBrowsing4::Storage::File;
 
 	my $ua = LWP::UserAgent->new();
 	$ua->env_proxy();
@@ -805,7 +805,7 @@ To use a proxy or select the network interface to use, simply create and set up 
 
 	my $gsb = Net::Google::SafeBrowsing4->new(
 		key			=> "my-api-key",
-		storage		=> Net::Google::SafeBrowsing4::File->new(path => "."),
+		storage		=> Net::Google::SafeBrowsing4::Storage::File->new(path => "."),
 		http_agent	=> $ua,
 	);
 
@@ -833,7 +833,7 @@ See L<Net::Google::SafeBrowsing4::URI> about URI parsing for Google Safe Browsin
 
 See L<Net::Google::SafeBrowsing4::Storage> for the list of public functions.
 
-See L<Net::Google::SafeBrowsing4::File> for a back-end storage using files.
+See L<Net::Google::SafeBrowsing4::Storage::File> for a back-end storage using files.
 
 Google Safe Browsing v4 API: L<https://developers.google.com/safe-browsing/v4/>
 

@@ -13,13 +13,13 @@ Net::Google::SafeBrowsing4::Storage - Base class for storing the Google Safe Bro
 
 =head1 SYNOPSIS
 
-	package Net::Google::SafeBrowsing4::File;
+	package Net::Google::SafeBrowsing4::Storage::File;
 
 	use base qw(Net::Google::SafeBrowsing4::Storage);
 
 =head1 DESCRIPTION
 
-This is the base class for implementing a storage mechanism for the Google Safe Browsing v4 database. See L<Net::Google::SafeBrowsing4::File> for an example of implementation.
+This is the base class for implementing a storage mechanism for the Google Safe Browsing v4 database. See L<Net::Google::SafeBrowsing4::Storage::File> for an example of implementation.
 
 This module cannot be used on its own as it does not actually store anything. All public methods should redefined.
 
@@ -466,7 +466,7 @@ sub get_full_hash_error {
 
 See L<Net::Google::SafeBrowsing4> for handling Google Safe Browsing v4.
 
-See L<Net::Google::SafeBrowsing4::File> for an example of storing and managing the Google Safe Browsing database.
+See L<Net::Google::SafeBrowsing4::Storage::File> for an example of storing and managing the Google Safe Browsing database.
 
 Google Safe Browsing v4 API: L<https://developers.google.com/safe-browsing/v4/>
 
