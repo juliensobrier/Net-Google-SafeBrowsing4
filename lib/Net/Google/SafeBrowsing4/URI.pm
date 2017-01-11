@@ -19,7 +19,7 @@ Net::Google::SafeBrowsing4::URI - URI management Class for the Google SafeBrowsi
 	use Net::Google::SafeBrowsing4::URI;
 
 	my $gsb_uri = Net::Google::SafeBrowsing4::URI->new('http://my.example.site:80/path/to/file.html?query=param#fragment');
-	my @uris = $gsb_uri->canonicalize();
+	my @uris = $gsb_uri->generate_lookupuris();
 
 =head1 DESCRIPTION
 
