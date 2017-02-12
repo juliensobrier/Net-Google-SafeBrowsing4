@@ -177,7 +177,7 @@ sub _normalize {
 	# Parse URI
 	my $uri_obj = URI->new($modified_rawuri);
 	if (ref($uri_obj) !~ /^URI::https?$/) {
-		if (!$uri_obj->scheme()) {
+		if (!$uri_obj->scheme() || (!$uri_obj->has_recognized_scheme() && $modified_rawuri =~ /^[^:]+:\d{1,5}(?:\/|$)/)) {
 			$uri_obj = URI->new("http://" . $modified_rawuri);
 		}
 	}
