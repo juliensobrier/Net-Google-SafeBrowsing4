@@ -368,13 +368,14 @@ sub update {
 
 =head2 lookup()
 
-Lookup a URL against the Google Safe Browsing database.
+Lookup URL(s) against the Google Safe Browsing database.
 
 
-Returns the list of hashes, along with the list and any metadata, that matches the URL:
+Returns the list of hashes, along with the list and any metadata, that matches the URL(s):
 
 	(
 		{
+			'lookup_url' => '...',
 			'hash' => '...',
 			'metadata' => {
 				'malware_threat_type' => 'DISTRIBUTION'
@@ -410,16 +411,42 @@ sub lookup {
 	my ($self, %args) = @_;
 	my $lists = $args{lists} || $self->{lists} || [];
 
-	# Parse URI
-	my $url = Net::Google::SafeBrowsing4::URI->new($args{url}) || return ();
+	if (!$args{url}) {
+		return ();
+	}
 
-	# Calculate full hashes
+	if (ref($args{url}) eq '') {
+		$args{url} = [ $args{url} ];
+	} elsif (ref($args{url}) ne 'ARRAY') {
+		$self->{logger} && $self->{logger}->error('Lookup() method accepts a single URI or list of URIs');
+		return ();
+	}
+
+	# Parse URI(s) and calculate hashes
 	my $start = time();
-	my @full_hashes = map { $_->hash() } $url->generate_lookupuris();
-	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hashes from URL: ", time() - $start,  "s ");
+	my $urls = {};
+	foreach my $url (@{$args{url}}) {
+		my $gsb_uri = Net::Google::SafeBrowsing4::URI->new($url);
+		if (!$gsb_uri) {
+			$self->{logger} && $self->{logger}->error('Failed to parse URI: '. $url);
+			next;
+		}
+
+		foreach my $sub_url ($gsb_uri->generate_lookupuris()) {
+			$urls->{ $sub_url->hash() } = $sub_url;
+		}
+	}
+	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hashes from URL(s): ", time() - $start,  "s ");
 
 	my $all_lists = $self->make_lists(lists => $lists);
-	my @matched_hashes = $self->lookup_suffix(lists => $all_lists, hashes => \@full_hashes);
+	my @matched_hashes = $self->lookup_suffix(lists => $all_lists, hashes => [keys(%$urls)]);
+
+	# map urls to hashes in the resultset
+	foreach my $entry (@matched_hashes) {
+		# @TODO GSB::URI->as_string() should return a string not a URI object
+		$entry->{lookup_url} = $urls->{$entry->{hash}}->as_string() . '';
+	}
+
 	return @matched_hashes;
 }
 
