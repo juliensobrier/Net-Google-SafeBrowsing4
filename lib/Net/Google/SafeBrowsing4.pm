@@ -443,8 +443,7 @@ sub lookup {
 
 	# map urls to hashes in the resultset
 	foreach my $entry (@matched_hashes) {
-		# @TODO GSB::URI->as_string() should return a string not a URI object
-		$entry->{lookup_url} = $urls->{$entry->{hash}}->as_string() . '';
+		$entry->{lookup_url} = $urls->{$entry->{hash}}->as_string();
 	}
 
 	return @matched_hashes;

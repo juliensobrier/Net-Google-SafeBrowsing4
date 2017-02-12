@@ -80,7 +80,7 @@ Returns the normalized URI as string.
 sub as_string {
 	my $self = shift;
 
-	return $self->{uri};
+	return '' . $self->{uri};
 }
 
 =item generate_lookupuris

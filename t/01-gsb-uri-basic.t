@@ -23,6 +23,8 @@ can_ok($gsb_uri, qw{
 	hash
 });
 
+is(ref($gsb_uri->as_string()), '', "as_string() method returns the URI as a scalar string");
+
 is(Net::Google::SafeBrowsing4::URI->new(), undef, "Constructor needs parameter.");
 
 SKIP: {
