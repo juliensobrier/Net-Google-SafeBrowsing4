@@ -80,7 +80,7 @@ Returns the normalized URI as string.
 sub as_string {
 	my $self = shift;
 
-	return $self->{uri};
+	return '' . $self->{uri};
 }
 
 =item generate_lookupuris
@@ -177,7 +177,7 @@ sub _normalize {
 	# Parse URI
 	my $uri_obj = URI->new($modified_rawuri);
 	if (ref($uri_obj) !~ /^URI::https?$/) {
-		if (!$uri_obj->scheme()) {
+		if (!$uri_obj->scheme() || (!$uri_obj->has_recognized_scheme() && $modified_rawuri =~ /^[^:]+:\d{1,5}(?:\/|$)/)) {
 			$uri_obj = URI->new("http://" . $modified_rawuri);
 		}
 	}
@@ -326,10 +326,10 @@ sub _parse_ipv4_segment {
 	my $bits = shift;
 	my $decimal;
 
-	if ($segment =~ /^0+([0-7]+)$/) {
+	if ($segment =~ /^0+([0-7]{0,10}|[0-3][0-7]{10})$/) {
 		$decimal = oct($1);
 	}
-	elsif ($segment =~ /^0x0*([[:xdigit:]]+)$/si) {
+	elsif ($segment =~ /^0x0*([[:xdigit:]]{1,8})$/si) {
 		$decimal = hex($1);
 	}
 	elsif ($segment =~ /^[1-9]\d+$/) {

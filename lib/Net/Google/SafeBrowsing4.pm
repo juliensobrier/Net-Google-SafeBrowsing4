@@ -27,9 +27,9 @@ Net::Google::SafeBrowsing4 - Perl extension for the Google Safe Browsing v4 API.
 =head1 SYNOPSIS
 
 	use Net::Google::SafeBrowsing4;
-	use Net::Google::SafeBrowsing4::File;
+	use Net::Google::SafeBrowsing4::Storage::File;
 
-	my $storage = Net::Google::SafeBrowsing4::File->new(path => '.');
+	my $storage = Net::Google::SafeBrowsing4::Storage::File->new(path => '.');
 	my $gsb = Net::Google::SafeBrowsing4->new(
 		key 	=> "my key",
 		storage	=> $storage,
@@ -51,7 +51,7 @@ Net::Google::SafeBrowsing4 implements the Google Safe Browsing v4 API.
 
 The library passes most of the unit tests listed in the API documentation. See the documentation (L<https://developers.google.com/safe-browsing/v4/urls-hashing#canonicalization>) for more details about the unit tests.
 
-The Google Safe Browsing database must be stored and managed locally. L<Net::Google::SafeBrowsing4::File> uses files as the storage back-end. Other storage mechanisms (databases, memory, etc.) can be added and used transparently with this module.
+The Google Safe Browsing database must be stored and managed locally. L<Net::Google::SafeBrowsing4::Storage::File> uses files as the storage back-end. Other storage mechanisms (databases, memory, etc.) can be added and used transparently with this module.
 
 The source code is available on github at L<https://github.com/juliensobrier/Net-Google-SafeBrowsing4>.
 
@@ -115,7 +115,7 @@ Create a Net::Google::SafeBrowsing4 object
 
 	my $gsb = Net::Google::SafeBrowsing4->new(
 		key		=> "my key",
-		storage	=> Net::Google::SafeBrowsing4::File->new(path => '.'),
+		storage	=> Net::Google::SafeBrowsing4::Storage::File->new(path => '.'),
 		lists	=> ["*/ANY_PLATFORM/URL"],
 	);
 
@@ -180,6 +180,7 @@ sub new {
 		last_error	=> '',
 		perf		=> 0,
 		logger		=> undef,
+		storage		=> undef,
 
 		http_agent	=> LWP::UserAgent->new(),
 		http_timeout => 60,
@@ -201,18 +202,18 @@ sub new {
 	$self->{http_agent}->default_header("Content-Type" => "application/json");
 	$self->{http_agent}->default_header("Accept-Encoding" => $self->{http_compression});
 
-	if (!exists($self->{storage})) {
-		use Net::Google::SafeBrowsing4::Storage;
-		$self->{storage} = Net::Google::SafeBrowsing4::Storage->new();
+	if (!$self->{storage}) {
+		$self->{logger} && $self->{logger}->error("Net::Google::SafeBrowsing4 needs a Storage object!");
+		return undef;
 	}
 
-	if (ref($self->{list}) ne 'ARRAY') {
-		$self->{list} = [$self->{list}];
+	if (ref($self->{lists}) ne 'ARRAY') {
+		$self->{lists} = [$self->{lists}];
 	}
 
 	$self->{base} = join("/", $self->{base}, "v" . $self->{version});
 
-	bless($self, $class) or croak("Can't bless $class: $!");
+	bless($self, $class);
 	return $self;
 }
 
@@ -255,7 +256,6 @@ sub update {
 	my $force = $args{force} || 0;
 
 	# Check if it is too early
-	# TODO: some lists may have been updated , others not. Update time has to be by list
 	my $time = $self->{storage}->next_update();
 	if ($time > time() && $force == 0) {
 		$self->{logger} && $self->{logger}->debug("Too early to update the local storage");
@@ -288,17 +288,13 @@ sub update {
 
 	if (! $response->is_success()) {
 		$self->{logger} && $self->{logger}->error("Update request failed");
-
 		$self->update_error('time' => time());
-
 		return SERVER_ERROR;
 	}
 
 	my $result = NO_DATA;
-
 	my $json = decode_json($response->decoded_content(encoding => 'none'));
 	my @data = @{ $json->{listUpdateResponses} };
-
 	foreach my $list (@data) {
 		my $threat = $list->{threatType};			# MALWARE
 		my $threatEntry = $list->{threatEntryType};	# URL
@@ -372,13 +368,14 @@ sub update {
 
 =head2 lookup()
 
-Lookup a URL against the Google Safe Browsing database.
+Lookup URL(s) against the Google Safe Browsing database.
 
 
-Returns the list of hashes, along with the list and any metadata, that matches the URL:
+Returns the list of hashes, along with the list and any metadata, that matches the URL(s):
 
 	(
 		{
+			'lookup_url' => '...',
 			'hash' => '...',
 			'metadata' => {
 				'malware_threat_type' => 'DISTRIBUTION'
@@ -413,22 +410,49 @@ Required. URL to lookup.
 sub lookup {
 	my ($self, %args) = @_;
 	my $lists = $args{lists} || $self->{lists} || [];
-	my $url = Net::Google::SafeBrowsing4::URI->new($args{url}) || return ();
 
-	# Calculate full hashes
+	if (!$args{url}) {
+		return ();
+	}
+
+	if (ref($args{url}) eq '') {
+		$args{url} = [ $args{url} ];
+	} elsif (ref($args{url}) ne 'ARRAY') {
+		$self->{logger} && $self->{logger}->error('Lookup() method accepts a single URI or list of URIs');
+		return ();
+	}
+
+	# Parse URI(s) and calculate hashes
 	my $start = time();
-	my @full_hashes = map { $_->hash() } $url->generate_lookupuris();
-	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hashes from URL: ", time() - $start,  "s ");
+	my $urls = {};
+	foreach my $url (@{$args{url}}) {
+		my $gsb_uri = Net::Google::SafeBrowsing4::URI->new($url);
+		if (!$gsb_uri) {
+			$self->{logger} && $self->{logger}->error('Failed to parse URI: '. $url);
+			next;
+		}
+
+		foreach my $sub_url ($gsb_uri->generate_lookupuris()) {
+			$urls->{ $sub_url->hash() } = $sub_url;
+		}
+	}
+	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hashes from URL(s): ", time() - $start,  "s ");
 
 	my $all_lists = $self->make_lists(lists => $lists);
-	my @matched_hashes = $self->lookup_suffix(lists => $all_lists, hashes => \@full_hashes);
+	my @matched_hashes = $self->lookup_suffix(lists => $all_lists, hashes => [keys(%$urls)]);
+
+	# map urls to hashes in the resultset
+	foreach my $entry (@matched_hashes) {
+		$entry->{lookup_url} = $urls->{$entry->{hash}}->as_string();
+	}
+
 	return @matched_hashes;
 }
 
 
 =head2 get_lists()
 
-Get all the lists from Google Safe Browsing.
+Get all threat list names from Google Safe Browsing.
 
 	my $lists = $gsb->get_lists();
 
@@ -448,20 +472,40 @@ Return an array reference of all the lists:
 		...
 	]
 
+	or C<undef> on error. This method updates C<$gsb->{last_Error}> field.
+
 =cut
 
 sub get_lists {
-	my ($self, %args) = @_;
+	my ($self) = @_;
 
+	$self->{last_error} = '';
 	my $response = $self->{http_agent}->get(
 		$self->{base} . "/threatLists?key=" . $self->{key},
 		"Content-Type" => "application/json"
 	);
+	$self->{logger} && $self->{logger}->trace('Request:' . $response->request->as_string());
+	$self->{logger} && $self->{logger}->trace('Response:' . $response->as_string());
 
-	$self->{logger} && $self->{logger}->debug($response->request->as_string());
-	$self->{logger} && $self->{logger}->debug($response->as_string());
+	if (!$response->is_success()) {
+		$self->{last_error} = "get_lists: ". $response->status_line();
+		return undef;
+	}
 
-	my $info = decode_json($response->decoded_content(encoding => 'none'));
+	my $info;
+	eval {
+		$info = decode_json($response->decoded_content(encoding => 'none'));
+	};
+	if ($@ || ref($info) ne 'HASH') {
+		$self->{last_error} = "get_lists: Invalid Response: ". ($@ || "Data is an array not an object");
+		return undef;
+	}
+
+	if (!exists($info->{threatLists})) {
+		$self->{last_error} = "get_lists: Invalid Response: Data missing the right key";
+		return undef;
+	}
+
 	return $info->{threatLists};
 }
 
@@ -778,7 +822,7 @@ To use a proxy or select the network interface to use, simply create and set up 
 
 	use LWP::UserAgent;
 	use Net::Google::SafeBrowsing4;
-	use Net::Google::SafeBrowsing4::File;
+	use Net::Google::SafeBrowsing4::Storage::File;
 
 	my $ua = LWP::UserAgent->new();
 	$ua->env_proxy();
@@ -787,7 +831,7 @@ To use a proxy or select the network interface to use, simply create and set up 
 
 	my $gsb = Net::Google::SafeBrowsing4->new(
 		key			=> "my-api-key",
-		storage		=> Net::Google::SafeBrowsing4::File->new(path => "."),
+		storage		=> Net::Google::SafeBrowsing4::Storage::File->new(path => "."),
 		http_agent	=> $ua,
 	);
 
@@ -815,7 +859,7 @@ See L<Net::Google::SafeBrowsing4::URI> about URI parsing for Google Safe Browsin
 
 See L<Net::Google::SafeBrowsing4::Storage> for the list of public functions.
 
-See L<Net::Google::SafeBrowsing4::File> for a back-end storage using files.
+See L<Net::Google::SafeBrowsing4::Storage::File> for a back-end storage using files.
 
 Google Safe Browsing v4 API: L<https://developers.google.com/safe-browsing/v4/>
 

@@ -15,9 +15,11 @@ my @invalid_uris = (
 	'',
 	# Only http and https scheme is supported by Googe::SafeBrowsing4 x2
 	'mailto:my@email.site',
-	"shihtzu://google.com",
-	"http://:80/index.html",
+	'shihtzu://google.com',
+	'http://:80/index.html',
+	':80/index.html',
 	'gopher:google.com',
+	'gopher:8999',
 );
 
 my %uris = (
@@ -43,7 +45,7 @@ my %uris = (
 	# Non-default port get removed
 	'http://google.com:8080/' => 'http://google.com/',
 	# URI without scheme
-	"google.com" => 'http://google.com/',
+	'google.com' => 'http://google.com/',
 	# URI with tab/CR/LF characters in it x3
 	"http://google\n.com/" => 'http://google.com/',
 	"http://google\n.com/in\t/the\r/path" => 'http://google.com/in/the/path',
@@ -81,7 +83,10 @@ my %uris = (
 	'http://www.google.com/#a#b#c' => 'http://www.google.com/',
 	# Some basic IP tests
 	'http://16843009/index.html' => 'http://1.1.1.1/index.html',
-	'http://1/index.html' => 'http://0.0.0.1/index.html'
+	'http://1/index.html' => 'http://0.0.0.1/index.html',
+	# Domain:port without scheme
+	'google.com:8999' => 'http://google.com/',
+	'google.com:8999/path/to/file.html?query=1' => 'http://google.com/path/to/file.html?query=1',
 );
 
 foreach my $uri (sort { ($a || '') cmp ($b || '') } @invalid_uris) {

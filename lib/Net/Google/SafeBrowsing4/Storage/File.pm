@@ -1,4 +1,4 @@
-package Net::Google::SafeBrowsing4::File;
+package Net::Google::SafeBrowsing4::Storage::File;
 
 use strict;
 use warnings;
@@ -15,13 +15,13 @@ our $VERSION = '0.1';
 
 =head1 NAME
 
-Net::Google::SafeBrowsing4::File - File storage for the Google Safe Browsing v4 database
+Net::Google::SafeBrowsing4::Storage::File - File storage for the Google Safe Browsing v4 database
 
 =head1 SYNOPSIS
 
-	use Net::Google::SafeBrowsing4::File;
+	use Net::Google::SafeBrowsing4::Storage::File;
 
-	my $storage = Net::Google::SafeBrowsing4::File->new(path => '.');
+	my $storage = Net::Google::SafeBrowsing4::Storage::File->new(path => '.');
 	$storage->save(...);
 
 =head1 DESCRIPTION
@@ -39,9 +39,9 @@ This is the a file-based implementation of L<Net::Google::SafeBrowsing4::Storage
 
 =head2 new()
 
-  Create a Net::Google::SafeBrowsing4::File object
+  Create a Net::Google::SafeBrowsing4::Storage::File object
 
-  my $storage	=> Net::Google::SafeBrowsing4::File->new(path => '.');
+  my $storage	=> Net::Google::SafeBrowsing4::Storage::File->new(path => '.');
 
 Arguments
 
@@ -70,7 +70,7 @@ Optional. Hash reference to map file types to file names. Default:
 
 =item logger
 
-Optional. Log4Perl compatible object reference. By default this option is unset, making Net::Google::SafeBrowsing4::File silent.
+Optional. Log4Perl compatible object reference. By default this option is unset, making Net::Google::SafeBrowsing4::Storage::File silent.
 
 =back
 

@@ -1,11 +1,9 @@
 package Net::Google::SafeBrowsing4::Storage;
 
+# ABSTRACT: Base class for storing the Google Safe Browsing v4 database
 
 use strict;
 use warnings;
-
-use Carp;
-
 
 our $VERSION = '0.1';
 
@@ -15,42 +13,34 @@ Net::Google::SafeBrowsing4::Storage - Base class for storing the Google Safe Bro
 
 =head1 SYNOPSIS
 
-  package Net::Google::SafeBrowsing4::File;
+	package Net::Google::SafeBrowsing4::Storage::File;
 
-  use base 'Net::Google::SafeBrowsing4::Storage';
+	use base qw(Net::Google::SafeBrowsing4::Storage);
 
 =head1 DESCRIPTION
 
-This is the base class for implementing a storage mechanism for the Google Safe Browsing v4 database. See L<Net::Google::SafeBrowsing4::File> for an example of implementation.
+This is the base class for implementing a storage mechanism for the Google Safe Browsing v4 database. See L<Net::Google::SafeBrowsing4::Storage::File> for an example of implementation.
 
-This module cannot be used on its own as it does not actually store anything. All methods should redefined. Check the code to see which arguments are used, and what should be returned.
+This module cannot be used on its own as it does not actually store anything. All public methods should redefined.
 
 =cut
 
 
 =head1 CONSTRUCTOR
 
-=over 4
-
-=back
-
 =head2 new()
 
 	Create a Net::Google::SafeBrowsing4::Storage object
 
-	my $storage => Net::Google::SafeBrowsing4::Storage->new();
+	my $storage => Net::Google::SafeBrowsing4::Storage->new(
+		# Constructor parameters vary based on the implementation
+		...
+	);
 
 =cut
 
 sub new {
-	my ($class, %args) = @_;
-
-	my $self = {
-		%args,
-	};
-
-	bless($self, $class) or croak("Can't bless $class: $!");
-	return $self;
+	...
 }
 
 =head1 PUBLIC FUNCTIONS
@@ -92,24 +82,12 @@ Optional. New list state.
 
 Required. Google Safe Browsing list.
 
-
 =back
 
 =cut
 
-
 sub save {
-	my ($self, %args) = @_;
-	my $list		= $args{list}		|| croak("Missing list information");
-	my $override	= $args{override}	|| 0;
-	my @hashes		= @{ $args{add}		|| [] };
-	my @remove		= @{ $args{remove} 	|| [] };
-	my $state		= $args{'state'}	|| '';
-
-	# save the information somewhere
-
-	# return the list of hashes, sorted, from the new storage
-	return @hashes;
+	...
 }
 
 
@@ -135,10 +113,7 @@ No return value
 =cut
 
 sub reset {
-	my ($self, %args) = @_;
-	my $list = $args{list} || croak "Missing list information\n";
-
-	# remove all hashes, empty state
+	...
 }
 
 
@@ -154,10 +129,7 @@ No arguments
 =cut
 
 sub next_update {
-	my ($self, %args) = @_;
-
-	# retrieve information from storage
-	return time() - 10;
+	...
 }
 
 
@@ -182,10 +154,7 @@ Required. Google Safe Browsing list.
 =cut
 
 sub get_state {
-	my ($self, %args) = @_;
-	my $list = $args{list} || croak("Missing list information\n");
-
-	return "";
+	...
 }
 
 
@@ -217,11 +186,7 @@ Required. List of full hashes.
 =cut
 
 sub get_prefixes {
-	my ($self, %args) = @_;
-	my $list = $args{list} || croak("Missing list information\n");
-	my @hashes = @{ $args{hashes} || [] };
-
-	return ({ prefix => '...', list => $list });
+	...
 }
 
 =head2 updated()
@@ -251,11 +216,7 @@ No return value
 =cut
 
 sub updated {
-	my ($self, %args) = @_;
-	my $time = $args{'time'} || time();
-	my $next = $args{'next'} || time() + 1800;
-
-	# next update applies to all lists, save it
+	...
 }
 
 
@@ -295,30 +256,7 @@ Array of full hashes:
 =cut
 
 sub get_full_hashes {
-	my ($self, %args) = @_;
-	my @lists = @{ $args{lists} || [] };
-	my $hash = $args{hash} || return ();
-
-	return (
-		{
-			hash => $self->ascii_to_hex('eb9744c011d332ad9c92442d18d5a0f913328ad5623983822fc86fad1aab649d'),
-			list => {
-				threatType => '...',
-				threatEntryType => '...',
-				platformType => '...'
-			},
-			expire => time() + 300
-		},
-		{
-			hash => $self->ascii_to_hex('2ae11a967a5517e24c7be3fa0b8f56e7a13358ce3b07556dc251bc6b650f0f59'),
-			list => {
-				threatType => '...',
-				threatEntryType => '...',
-				platformType => '...'
-			},
-			expire => time() + 300
-		}
-	);
+	...
 }
 
 
@@ -353,13 +291,7 @@ No return value
 =cut
 
 sub update_error {
-	my ($self, %args) = @_;
-	my $time = $args{'time'} || time();
-	my $list = $args{'list'} || '';
-	my $wait = $args{'wait'} || 60;
-	my $errors = $args{errors} || 1;
-
-	# UPDATE updates SET last = $time, wait = $wait, errors = $errors, list = $list
+	...
 }
 
 =head2 last_update()
@@ -388,9 +320,7 @@ Hash reference
 =cut
 
 sub last_update {
-	my ($self, %args) 	= @_;
-
-	return {'time' => time(), errors => 0};
+	...
 }
 
 =head2 add_full_hashes()
@@ -427,13 +357,7 @@ No return value
 =cut
 
 sub add_full_hashes {
-	my ($self, %args) = @_;
-	my $timestamp = $args{timestamp} || time();
-	my $full_hashes = $args{full_hashes} || [];
-
-	foreach my $hash (@$full_hashes) {
-		# INSERT INTO [...] (hash, list, timestamp, end,type ) VALUES ($hash->{chunknum}, $hash->{hash}, $hash->{list}, $timestamp, $timestamp + $hash->{life}, $hash->{type});
-	}
+	...
 }
 
 =head2 full_hash_error()
@@ -464,11 +388,7 @@ No return value
 =cut
 
 sub full_hash_error {
-	my ($self, %args) = @_;
-	my $timestamp = $args{timestamp} || time();
-	my $prefix = $args{prefix} || '';
-
-	# Add 1 to existing error count
+	...
 }
 
 =head2 full_hash_ok()
@@ -499,11 +419,7 @@ No return value
 =cut
 
 sub full_hash_ok {
-	my ($self, %args) = @_;
-	my $timestamp = $args{timestamp} || time();
-	my $prefix = $args{prefix} || '';
-
-	# UPDATE full_hashes_errors SET errors = 0, timestamp = $timestamp WHERE prefix = $prefix
+	...
 }
 
 =head2 get_full_hash_error()
@@ -543,79 +459,14 @@ Hash reference in the following format if there was an error:
 =cut
 
 sub get_full_hash_error {
-	my ($self, %args) = @_;
-	my $prefix = $args{prefix} || '';
-
-	# some error
-	# return { timestamp => time(), errors => 3 }
-	# no error
-	return undef;
+	...
 }
-
-
-=head1 PRIVATE FUNCTIONS
-
-These functions are not intended for debugging purpose.
-
-=over 4
-
-=back
-
-=head2 hex_to_ascii()
-
-Transform hexadecimal strings to printable ASCII strings. Used mainly for debugging.
-
-  print $storage->hex_to_ascii('hex value');
-
-=cut
-
-sub hex_to_ascii {
-	my ($self, $hex) = @_;
-	my $ascii = '';
-
-	while (length($hex) > 0) {
-		$ascii .= sprintf("%02x",  ord( substr($hex, 0, 1, '') ) );
-	}
-
-	return $ascii;
-}
-
-=head2 ascii_to_hex()
-
-Transform ASCII strings to hexadecimal strings.
-
-	  print $storage->ascii_to_hex('ascii value');
-
-=cut
-
-sub ascii_to_hex {
-	my ($self, $ascii) = @_;
-
-	my $hex = '';
-	for (my $i = 0; $i < int(length($ascii) / 2); $i++) {
-		$hex .= chr hex( substr($ascii, $i * 2, 2) );
-	}
-
-	return $hex;
-}
-
-
-=head1 CHANGELOG
-
-=over 4
-
-
-=item 0.1
-
-Initial release.
-
-=back
 
 =head1 SEE ALSO
 
 See L<Net::Google::SafeBrowsing4> for handling Google Safe Browsing v4.
 
-See L<Net::Google::SafeBrowsing4::File> for an example of storing and managing the Google Safe Browsing database.
+See L<Net::Google::SafeBrowsing4::Storage::File> for an example of storing and managing the Google Safe Browsing database.
 
 Google Safe Browsing v4 API: L<https://developers.google.com/safe-browsing/v4/>
 
