@@ -283,8 +283,8 @@ sub update {
 		Content => encode_json($info)
 	);
 
-	$self->{logger} && $self->{logger}->debug($response->request()->as_string());
-	$self->{logger} && $self->{logger}->debug($response->as_string());
+	$self->{logger} && $self->{logger}->trace($response->request()->as_string());
+	$self->{logger} && $self->{logger}->trace($response->as_string());
 
 	if (! $response->is_success()) {
 		$self->{logger} && $self->{logger}->error("Update request failed");
@@ -538,6 +538,8 @@ sub lookup_suffix {
 	}
 	$self->{logger} && $self->{logger}->debug("Found ", scalar(@prefixes), " prefix(s) in local database");
 
+	# TODO: filter full hashes with prefixes
+
 	# get stored full hashes
 	$start = time();
 	my $found = 0;
@@ -558,23 +560,23 @@ sub lookup_suffix {
 	}
 
 	$self->{logger} && $self->{logger}->debug(sprintf"Looking up %d hashes\n", scalar(keys(%$lookup_hashes)));
-	# Resemble prefix list. Hashes found locally don't need to be queried.
-	@prefixes = $self->{storage}->get_prefixes(hashes => [keys(%$lookup_hashes)], lists => $lists);
+	if ($found > 0) {
+		# Resemble prefix list. Hashes found locally don't need to be queried.
+		@prefixes = $self->{storage}->get_prefixes(hashes => [keys(%$lookup_hashes)], lists => $lists);
+	}
 
 	# ask for new hashes
-	# TODO: make sure we don't keep asking for the same over and over
 	$start = time();
 	my @retrieved_hashes = $self->request_full_hash(prefixes => [ @prefixes ]);
 	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hash request: ", time() - $start,  "s ");
 
-	# Make sure the full hash match one of the full hashes for a give URL
 	$start = time();
 	my @matches = grep { exists($lookup_hashes->{$_->{hash}}) } @retrieved_hashes;
 	push(@results, @matches) if (scalar(@matches) > 0);
 	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hash check: ", time() - $start,  "s ");
 
 	$start = time();
-	$self->{storage}->add_full_hashes(hashes => [@results], timestamp => time());
+	$self->{storage}->add_full_hashes(hashes => [@retrieved_hashes], timestamp => time());
 	$self->{perf} && $self->{logger} && $self->{logger}->debug("Save full hashes: ", time() - $start,  "s ");
 
 	return @results;
@@ -744,8 +746,8 @@ sub request_full_hash {
 		Content => encode_json($info)
 	);
 
-	$self->{logger} && $self->{logger}->debug($response->request->as_string());
-	$self->{logger} && $self->{logger}->debug($response->as_string());
+	$self->{logger} && $self->{logger}->trace($response->request()->as_string());
+	$self->{logger} && $self->{logger}->trace($response->as_string());
 
 	if (! $response->is_success()) {
 		$self->{logger} && $self->{logger}->error("Full hash request failed");
