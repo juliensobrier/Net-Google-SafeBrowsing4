@@ -18,7 +18,7 @@ use Net::Google::SafeBrowsing4::URI;
 
 our @EXPORT = qw(DATABASE_RESET INTERNAL_ERROR SERVER_ERROR NO_UPDATE NO_DATA SUCCESSFUL);
 
-our $VERSION = '0.2';
+our $VERSION = '0.4';
 
 =head1 NAME
 
@@ -48,8 +48,6 @@ Net::Google::SafeBrowsing4 - Perl extension for the Google Safe Browsing v4 API.
 =head1 DESCRIPTION
 
 Net::Google::SafeBrowsing4 implements the Google Safe Browsing v4 API.
-
-The library passes most of the unit tests listed in the API documentation. See the documentation (L<https://developers.google.com/safe-browsing/v4/urls-hashing#canonicalization>) for more details about the unit tests.
 
 The Google Safe Browsing database must be stored and managed locally. L<Net::Google::SafeBrowsing4::Storage::File> uses files as the storage back-end. Other storage mechanisms (databases, memory, etc.) can be added and used transparently with this module.
 
