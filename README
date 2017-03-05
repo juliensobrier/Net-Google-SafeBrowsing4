@@ -3,10 +3,10 @@ Net-Google-SafeBrowsing4
 
 Net::Google::SafeBrowsing4 implements the Google Safe Browsing v4 Local API
 
-The library passes most of the unit tests listed in the API documentation.
+The library passes all the unit tests listed in the API documentation.
 
 The Google Safe Browsing database must be stored and managed locally.
-Net::Google::SafeBrowsing4::Storage::File uses files as the storage back-en.
+Net::Google::SafeBrowsing4::Storage::File uses files as the storage back-end.
 Other storage mechanisms (databases, memory, etc.) can be added and used transparently with this module.
 
 
