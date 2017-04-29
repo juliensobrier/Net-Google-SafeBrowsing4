@@ -281,8 +281,8 @@ sub update {
 		Content => encode_json($info)
 	);
 
-	$self->{logger} && $self->{logger}->debug($response->request()->as_string());
-	$self->{logger} && $self->{logger}->debug($response->as_string());
+	$self->{logger} && $self->{logger}->trace($response->request()->as_string());
+	$self->{logger} && $self->{logger}->trace($response->as_string());
 
 	if (! $response->is_success()) {
 		$self->{logger} && $self->{logger}->error("Update request failed");
@@ -522,11 +522,13 @@ Lookup uri hashes..
 sub lookup_suffix {
 	my ($self, %args) = @_;
 	my $lists = $args{lists} || croak("Missing lists\n");
-	my $hashes = $args{hashes} || return '';
+	my $lookup_hashes = { map { $_=> 1 } @{$args{hashes}} };
+	my @results = ();
 
- 	# Local lookup
- 	my $start = time();
- 	my @prefixes = $self->{storage}->get_prefixes(hashes => $hashes, lists => $lists);
+	$self->{logger} && $self->{logger}->debug(sprintf"Looking up prefixes for %d hashes\n", scalar(keys(%$lookup_hashes)));
+	# Local lookup
+	my $start = time();
+	my @prefixes = $self->{storage}->get_prefixes(hashes => [keys(%$lookup_hashes)], lists => $lists);
 	$self->{perf} && $self->{logger} && $self->{logger}->debug("Local lookup: ", time() - $start,  "s ");
 	if (scalar(@prefixes) == 0) {
 		$self->{logger} && $self->{logger}->debug("No hit in local lookup");
@@ -534,36 +536,45 @@ sub lookup_suffix {
 	}
 	$self->{logger} && $self->{logger}->debug("Found ", scalar(@prefixes), " prefix(s) in local database");
 
+	# TODO: filter full hashes with prefixes
+
 	# get stored full hashes
 	$start = time();
-	foreach my $hash (@{$hashes}) {
-		my @hashes = $self->{storage}->get_full_hashes(hash => $hash, lists => $lists);
-
-		if (scalar(@hashes) > 0) {
-			$self->{logger} && $self->{logger}->debug("Full hashes found locally: " . scalar(@hashes));
-			return (@hashes);
+	my $found = 0;
+	foreach my $lookup_hash (keys(%$lookup_hashes)) {
+		# @TODO get_full_hashes should be able to look up multiple hashes at once (it could be faster)
+		my @matches = $self->{storage}->get_full_hashes(hash => $lookup_hash, lists => $lists);
+		if (scalar(@matches) > 0) {
+			$found += scalar(@matches);
+			map { delete($lookup_hashes->{$_->{hash}}) } @matches;
+			push(@results, @matches);
 		}
 	}
+	$self->{logger} && $self->{logger}->debug("Full hashes found locally: " . $found);
 	$self->{perf} && $self->{logger} && $self->{logger}->debug("Stored hashes lookup: ", time() - $start,  "s ");
 
+	if (scalar(keys(%$lookup_hashes)) == 0) {
+		return @results;
+	}
+
+	$self->{logger} && $self->{logger}->debug(sprintf"Looking up %d hashes\n", scalar(keys(%$lookup_hashes)));
+	if ($found > 0) {
+		# Resemble prefix list. Hashes found locally don't need to be queried.
+		@prefixes = $self->{storage}->get_prefixes(hashes => [keys(%$lookup_hashes)], lists => $lists);
+	}
 
 	# ask for new hashes
-	# TODO: make sure we don't keep asking for the same over and over
 	$start = time();
-	my @hashes = $self->request_full_hash(prefixes => [ @prefixes ]);
+	my @retrieved_hashes = $self->request_full_hash(prefixes => [ @prefixes ]);
 	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hash request: ", time() - $start,  "s ");
 
-	# Make sure the full hash match one of the full hashes for a give URL
-	my @results = ();
 	$start = time();
-	foreach my $full_hash (@$hashes) {
-		my @matches = grep { $_->{hash} eq $full_hash } @hashes;
-		push(@results, @matches) if (scalar(@matches) > 0);
-	}
+	my @matches = grep { exists($lookup_hashes->{$_->{hash}}) } @retrieved_hashes;
+	push(@results, @matches) if (scalar(@matches) > 0);
 	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hash check: ", time() - $start,  "s ");
 
 	$start = time();
-	$self->{storage}->add_full_hashes(hashes => [@results], timestamp => time());
+	$self->{storage}->add_full_hashes(hashes => [@retrieved_hashes], timestamp => time());
 	$self->{perf} && $self->{logger} && $self->{logger}->debug("Save full hashes: ", time() - $start,  "s ");
 
 	return @results;
@@ -733,8 +744,8 @@ sub request_full_hash {
 		Content => encode_json($info)
 	);
 
-	$self->{logger} && $self->{logger}->debug($response->request->as_string());
-	$self->{logger} && $self->{logger}->debug($response->as_string());
+	$self->{logger} && $self->{logger}->trace($response->request()->as_string());
+	$self->{logger} && $self->{logger}->trace($response->as_string());
 
 	if (! $response->is_success()) {
 		$self->{logger} && $self->{logger}->error("Full hash request failed");
