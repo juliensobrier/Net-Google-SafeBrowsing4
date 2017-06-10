@@ -20,6 +20,7 @@ my @invalid_uris = (
 	':80/index.html',
 	'gopher:google.com',
 	'gopher:8999',
+	'.',
 );
 
 my %uris = (

@@ -211,6 +211,10 @@ sub _normalize {
 	}
 	$uri_obj->host($modified_host);
 
+	if ($uri_obj->host() =~ /^[\s.\/]*$/) {
+		return undef;
+	}
+
 	my $modified_path = $uri_obj->path();
 	# Eliminate current directory /./ parts
 	while ($modified_path =~ s/\/\.(?:\/|$)/\//sg) {};
