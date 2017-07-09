@@ -21,6 +21,12 @@ my @invalid_uris = (
 	'gopher:google.com',
 	'gopher:8999',
 	'.',
+	# domain with all numeric TLD
+	'http://domain.99/',
+	# Domain with IP address like ending
+	'http://some.hostname.111.111.77.99/',
+	# domain with TLD that starts with a number
+	'http://domain.9s/',
 );
 
 my %uris = (
