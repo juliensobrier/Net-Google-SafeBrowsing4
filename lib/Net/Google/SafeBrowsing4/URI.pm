@@ -211,6 +211,17 @@ sub _normalize {
 	}
 	$uri_obj->host($modified_host);
 
+	# Empty/separator-only host
+	if ($uri_obj->host() =~ /^[\s.\/]*$/) {
+		return undef;
+	}
+
+	# Numeric TLD (and not IPv4)
+	if ($uri_obj->host() =~ /\.\d[^\.]*$/
+	 && $uri_obj->host() !~ /^(?:2(?:5[0-5]|[0-4][0-9])|[01]?[0-9]{1,2})(?:\.(?:2(?:5[0-5]|[0-4][0-9])|[01]?[0-9]{1,2})){3}$/) {
+		return undef;
+	}
+
 	my $modified_path = $uri_obj->path();
 	# Eliminate current directory /./ parts
 	while ($modified_path =~ s/\/\.(?:\/|$)/\//sg) {};
