@@ -749,6 +749,7 @@ sub request_full_hash {
 
 	if (! $response->is_success()) {
 		$self->{logger} && $self->{logger}->error("Full hash request failed");
+		$self->{last_error} = "Full hash request failed";
 
 		# TODO
 #		foreach my $info (keys keys %hashes) {

@@ -2,6 +2,7 @@ Revision history for Perl extension Net::Google::SafeBrowsing4.
 
 0.5  Wed August 17 20:15:00 2017
 	- use binary search to get local prefix (faster) - issue #8
+	- update last_error if full hash request failed - issue #7
 
 0.4  Wed August 17 19:10:00 2017
 	- Fix manifest file
