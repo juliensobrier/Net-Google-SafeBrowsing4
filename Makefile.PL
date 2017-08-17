@@ -24,6 +24,7 @@ WriteMakefile(
 		Text::Trim		=> 0,
 		Time::HiRes		=> 0,
 		URI			=> 0,
+		List::BinarySearch	=> 0,
 	},
 	META_MERGE => {
 		'meta-spec' => { version => 2 },

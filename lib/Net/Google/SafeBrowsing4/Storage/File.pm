@@ -9,9 +9,10 @@ use Carp;
 use List::Util qw(first);
 use Path::Tiny;
 use Storable qw(nstore retrieve);
+use List::BinarySearch qw(binsearch);
 
 
-our $VERSION = '0.1';
+our $VERSION = '0.2';
 
 =head1 NAME
 
@@ -357,8 +358,12 @@ sub get_prefixes {
 		}
 
 		foreach my $hash (@hashes) {
-			my $prefix = first { substr($hash, 0, length($_)) eq $_ } @{ $db->{hashes} };
-			push(@data, { prefix => $prefix, list => $list }) if (defined($prefix));
+			my $prefix = undef;
+			my $index = binsearch {substr($a,0,length($b)) cmp $b} $hash, @{ $db->{hashes} };
+			if (defined $index) {
+				$prefix = $db->{hashes}->[$index];
+				push(@data, { prefix => $prefix, list => $list });
+			}
 		}
 	}
 

@@ -43,6 +43,7 @@ This module requires these other modules and libraries:
   Text::Trim
   Time::HiRes
   URI
+  List::BinarySearch
 
 
 COPYRIGHT AND LICENCE
