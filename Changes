@@ -1,5 +1,8 @@
 Revision history for Perl extension Net::Google::SafeBrowsing4.
 
+0.4  Wed August 17 19:10:00 2017
+	- Fix manifest file
+
 0.3  Sat March 05 17:38:00 2017
 	- Lookup multiple URLs at once
 
