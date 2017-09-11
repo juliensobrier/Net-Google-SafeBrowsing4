@@ -129,7 +129,10 @@ sub generate_lookupuris {
 	foreach my $domain (@domains) {
 		foreach my $path (@paths) {
 			my $gsb_uri = Net::Google::SafeBrowsing4::URI->new($scheme . $domain . $path);
-			push(@uris, $gsb_uri);
+			# @TODO Sub-URI of a valid URI should be a valid URI. Condition should not be necessary.
+			if (defined($gsb_uri)) {
+				push(@uris, $gsb_uri);
+			}
 		}
 	}
 
