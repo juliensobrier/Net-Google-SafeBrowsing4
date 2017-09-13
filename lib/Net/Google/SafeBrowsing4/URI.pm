@@ -105,7 +105,7 @@ sub generate_lookupuris {
 
 		while (scalar(@parts) > 2) {
 			shift(@parts);
-			push(@domains, join(".", @parts) );
+			push(@domains, join(".", @parts));
 		}
 	}
 	push(@domains, $host);

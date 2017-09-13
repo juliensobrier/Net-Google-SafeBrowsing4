@@ -364,89 +364,6 @@ sub update {
 	return $result;
 }
 
-=head2 lookup()
-
-Lookup URL(s) against the Google Safe Browsing database.
-
-
-Returns the list of hashes, along with the list and any metadata, that matches the URL(s):
-
-	(
-		{
-			'lookup_url' => '...',
-			'hash' => '...',
-			'metadata' => {
-				'malware_threat_type' => 'DISTRIBUTION'
-			},
-			'list' => {
-				'threatEntryType' => 'URL',
-				'threatType' => 'MALWARE',
-				'platformType' => 'ANY_PLATFORM'
-			},
-			'cache' => '300s'
-		},
-		...
-	)
-
-
-Arguments
-
-=over 4
-
-=item lists
-
-Optional. Lookup against specific lists. Use the list(s) from new() by default.
-
-=item url
-
-Required. URL to lookup.
-
-=back
-
-=cut
-
-sub lookup {
-	my ($self, %args) = @_;
-	my $lists = $args{lists} || $self->{lists} || [];
-
-	if (!$args{url}) {
-		return ();
-	}
-
-	if (ref($args{url}) eq '') {
-		$args{url} = [ $args{url} ];
-	} elsif (ref($args{url}) ne 'ARRAY') {
-		$self->{logger} && $self->{logger}->error('Lookup() method accepts a single URI or list of URIs');
-		return ();
-	}
-
-	# Parse URI(s) and calculate hashes
-	my $start = time();
-	my $urls = {};
-	foreach my $url (@{$args{url}}) {
-		my $gsb_uri = Net::Google::SafeBrowsing4::URI->new($url);
-		if (!$gsb_uri) {
-			$self->{logger} && $self->{logger}->error('Failed to parse URI: '. $url);
-			next;
-		}
-
-		foreach my $sub_url ($gsb_uri->generate_lookupuris()) {
-			$urls->{ $sub_url->hash() } = $sub_url;
-		}
-	}
-	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hashes from URL(s): ", time() - $start,  "s ");
-
-	my $all_lists = $self->make_lists(lists => $lists);
-	my @matched_hashes = $self->lookup_suffix(lists => $all_lists, hashes => [keys(%$urls)]);
-
-	# map urls to hashes in the resultset
-	foreach my $entry (@matched_hashes) {
-		$entry->{lookup_url} = $urls->{$entry->{hash}}->as_string();
-	}
-
-	return @matched_hashes;
-}
-
 
 =head2 get_lists()
 
@@ -507,78 +424,164 @@ sub get_lists {
 	return $info->{threatLists};
 }
 
+
+=head2 lookup()
+
+Lookup URL(s) against the Google Safe Browsing database.
+
+
+Returns the list of hashes, along with the list and any metadata, that matches the URL(s):
+
+	(
+		{
+			'lookup_url' => '...',
+			'hash' => '...',
+			'metadata' => {
+				'malware_threat_type' => 'DISTRIBUTION'
+			},
+			'list' => {
+				'threatEntryType' => 'URL',
+				'threatType' => 'MALWARE',
+				'platformType' => 'ANY_PLATFORM'
+			},
+			'cache' => '300s'
+		},
+		...
+	)
+
+
+Arguments
+
+=over 4
+
+=item lists
+
+Optional. Lookup against specific lists. Use the list(s) from new() by default.
+
+=item url
+
+Required. URL to lookup.
+
+=back
+
+=cut
+
+sub lookup {
+	my ($self, %args) = @_;
+	my $list_expressions = $args{lists} || $self->{lists} || [];
+	# List expressions may contain wildcards which need to be expanded
+	my $list_names = $self->make_lists(lists => $list_expressions);
+
+	if (!$args{url}) {
+		return ();
+	}
+
+	if (ref($args{url}) eq '') {
+		$args{url} = [ $args{url} ];
+	} elsif (ref($args{url}) ne 'ARRAY') {
+		$self->{logger} && $self->{logger}->error('Lookup() method accepts a single URI or list of URIs');
+		return ();
+	}
+	$self->{logger} && $self->{logger}->debug(sprintf"Requested to look up %d URIs", scalar(@{$args{url}}));
+
+
+	# Parse URI(s) and calculate hashes
+	my $start;
+	$self->{perf} && ($start = time());
+	my $urls = {};
+	foreach my $url (@{$args{url}}) {
+		my $gsb_uri = Net::Google::SafeBrowsing4::URI->new($url);
+		if (!$gsb_uri) {
+			$self->{logger} && $self->{logger}->error('Failed to parse URI: '. $url);
+			next;
+		}
+		my $main_uri_hash = $gsb_uri->hash();
+
+		foreach my $sub_url ($gsb_uri->generate_lookupuris()) {
+			my $uri_hash = $sub_url->hash();
+			$urls->{$uri_hash} = $sub_url;
+			$urls->{$uri_hash}{hash} = $uri_hash;
+			$urls->{$uri_hash}{parent} = $main_uri_hash;
+		}
+	}
+	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hashes from URL(s): ", time() - $start,  "s ");
+
+
+	# Lookup hash prefixes in the local database
+	$self->{perf} && ($start = time());
+	my $lookup_hashes = { map { $_ => '' } keys(%$urls) };
+	$self->{logger} && $self->{logger}->debug(sprintf"Looking up prefixes for %d hashes in local db", scalar(keys(%$lookup_hashes)));
+	my @matched_prefixes = $self->{storage}->get_prefixes(hashes => [keys(%$lookup_hashes)], lists => $list_names);
+	if (scalar(@matched_prefixes) == 0) {
+		$self->{logger} && $self->{logger}->debug("No hit on local hash prefix lookup");
+		return ();
+	}
+	$self->{logger} && $self->{logger}->debug(sprintf(
+		"%d hits by %d prefixes in local database",
+		scalar(@matched_prefixes),
+		scalar(keys(%{ { map { $_->{prefix} => 1 } @matched_prefixes } }) )
+	));
+
+	# Mark hashes that were found in prefix db, drop others
+	map { $lookup_hashes->{$_->{hash}} = $_->{prefix} } @matched_prefixes;
+	map { delete($lookup_hashes->{$_}) if ($lookup_hashes->{$_} eq '') } keys(%$lookup_hashes);
+	$self->{perf} && $self->{logger} && $self->{logger}->debug("Find hash prefixes in local db: ", time() - $start,  "s ");
+
+
+	# Lookup full hashes in the local database
+	$self->{perf} && ($start = time());
+	$self->{logger} && $self->{logger}->debug(sprintf"Looking up %d full hashes in local db", scalar(keys(%$lookup_hashes)));
+	my @results = ();
+	foreach my $lookup_hash (keys(%$lookup_hashes)) {
+		# @TODO get_full_hashes should be able to look up multiple hashes at once (it could be faster)
+		my @hash_matches = $self->{storage}->get_full_hashes(hash => $lookup_hash, lists => $list_names);
+		push(@results, @hash_matches);
+
+		# Delete all URI hashes that are based of a URI that was founded on GSB
+		my %found_hashes = map { $_->{hash} => 1 } @hash_matches;
+		foreach my $found_hash (keys(%found_hashes)) {
+			map {
+				delete($lookup_hashes->{$_}) if ($urls->{$_}{parent} eq $urls->{$found_hash}{parent})
+			} keys(%$lookup_hashes);
+		}
+	}
+	$self->{logger} && $self->{logger}->debug(sprintf("%d unknown full hashes remained after local lookup", scalar(keys(%$lookup_hashes))));
+	$self->{perf} && $self->{logger} && $self->{logger}->debug("Stored hashes lookup: ", time() - $start,  "s ");
+
+
+	# Download full hashes for the remaining prefixes if needed
+	$self->{perf} && ($start = time());
+	my %needed_prefixes = map { $_ => 1 } values(%$lookup_hashes);
+	if (scalar(keys(%needed_prefixes)) > 0) {
+		my @lookup_prefixes = grep { exists($needed_prefixes{$_->{prefix}}) } @matched_prefixes;
+		my @retrieved_hashes = $self->request_full_hash(prefixes => [@lookup_prefixes]);
+		$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hash request: ", time() - $start,  "s ");
+
+		$start = time();
+		my @matches = grep { exists($lookup_hashes->{$_->{hash}}) } @retrieved_hashes;
+		push(@results, @matches) if (scalar(@matches) > 0);
+		$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hash check: ", time() - $start,  "s ");
+
+		$start = time();
+		$self->{storage}->add_full_hashes(hashes => [@retrieved_hashes], timestamp => time());
+		$self->{perf} && $self->{logger} && $self->{logger}->debug("Save full hashes: ", time() - $start,  "s ");
+	}
+
+
+	# map urls to hashes in the resultset
+	foreach my $entry (@results) {
+		$entry->{lookup_url} = $urls->{$entry->{hash}}->as_string();
+	}
+
+	return @results;
+}
+
 =pod
 
 =head1 PRIVATE FUNCTIONS
 
 These functions are not intended to be used externally.
 
-=head2 lookup_suffix()
-
-Lookup uri hashes..
-
-=cut
-
-sub lookup_suffix {
-	my ($self, %args) = @_;
-	my $lists = $args{lists} || croak("Missing lists\n");
-	my $lookup_hashes = { map { $_=> 1 } @{$args{hashes}} };
-	my @results = ();
-
-	$self->{logger} && $self->{logger}->debug(sprintf"Looking up prefixes for %d hashes\n", scalar(keys(%$lookup_hashes)));
-	# Local lookup
-	my $start = time();
-	my @prefixes = $self->{storage}->get_prefixes(hashes => [keys(%$lookup_hashes)], lists => $lists);
-	$self->{perf} && $self->{logger} && $self->{logger}->debug("Local lookup: ", time() - $start,  "s ");
-	if (scalar(@prefixes) == 0) {
-		$self->{logger} && $self->{logger}->debug("No hit in local lookup");
-		return ();
-	}
-	$self->{logger} && $self->{logger}->debug("Found ", scalar(@prefixes), " prefix(s) in local database");
-
-	# TODO: filter full hashes with prefixes
-
-	# get stored full hashes
-	$start = time();
-	my $found = 0;
-	foreach my $lookup_hash (keys(%$lookup_hashes)) {
-		# @TODO get_full_hashes should be able to look up multiple hashes at once (it could be faster)
-		my @matches = $self->{storage}->get_full_hashes(hash => $lookup_hash, lists => $lists);
-		if (scalar(@matches) > 0) {
-			$found += scalar(@matches);
-			map { delete($lookup_hashes->{$_->{hash}}) } @matches;
-			push(@results, @matches);
-		}
-	}
-	$self->{logger} && $self->{logger}->debug("Full hashes found locally: " . $found);
-	$self->{perf} && $self->{logger} && $self->{logger}->debug("Stored hashes lookup: ", time() - $start,  "s ");
-
-	if (scalar(keys(%$lookup_hashes)) == 0) {
-		return @results;
-	}
-
-	$self->{logger} && $self->{logger}->debug(sprintf"Looking up %d hashes\n", scalar(keys(%$lookup_hashes)));
-	if ($found > 0) {
-		# Resemble prefix list. Hashes found locally don't need to be queried.
-		@prefixes = $self->{storage}->get_prefixes(hashes => [keys(%$lookup_hashes)], lists => $lists);
-	}
-
-	# ask for new hashes
-	$start = time();
-	my @retrieved_hashes = $self->request_full_hash(prefixes => [ @prefixes ]);
-	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hash request: ", time() - $start,  "s ");
-
-	$start = time();
-	my @matches = grep { exists($lookup_hashes->{$_->{hash}}) } @retrieved_hashes;
-	push(@results, @matches) if (scalar(@matches) > 0);
-	$self->{perf} && $self->{logger} && $self->{logger}->debug("Full hash check: ", time() - $start,  "s ");
-
-	$start = time();
-	$self->{storage}->add_full_hashes(hashes => [@retrieved_hashes], timestamp => time());
-	$self->{perf} && $self->{logger} && $self->{logger}->debug("Save full hashes: ", time() - $start,  "s ");
-
-	return @results;
-}
 
 =head2 make_lists()
 
