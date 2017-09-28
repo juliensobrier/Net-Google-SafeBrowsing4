@@ -101,7 +101,7 @@ sub generate_lookupuris {
 	my @domains = ();
 	if ($host !~ /^\d+\.\d+\.\d+\.\d+$/) {
 		my @parts = split(/\./, $host);
-		splice(@parts, 0, -6); # take 5 top most compoments
+		splice(@parts, 0, -6); # take 5 top most components
 
 		while (scalar(@parts) > 2) {
 			shift(@parts);
