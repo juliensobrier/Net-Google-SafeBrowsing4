@@ -712,9 +712,9 @@ sub request_full_hash {
 	foreach my $info (@prefixes) {
 		if (
 			!defined(first {
-					$_->{threatType} eq $info->{list}->{threatType} &&
-					$_->{platformType} eq $info->{list}->{platformType} &&
-					$_->{threatEntryType} eq $info->{list}->{threatEntryType}
+				$_->{threatType} eq $info->{list}->{threatType} &&
+				$_->{platformType} eq $info->{list}->{platformType} &&
+				$_->{threatEntryType} eq $info->{list}->{threatEntryType}
 			} @lists)
 		) {
 			push(@lists, $info->{list});
@@ -892,4 +892,3 @@ at your option, any later version of Perl 5 you may have available.
 
 1;
 __END__
-
