@@ -629,7 +629,7 @@ sub make_lists {
 			my ($threat, $platform, $threatEntry) = split(/\//, $list);
 
 			push(@all, {
-				threatType			=> $threat,
+				threatType		=> $threat,
 				platformType		=> $platform,
 				threatEntryType		=> $threatEntry,
 			});
