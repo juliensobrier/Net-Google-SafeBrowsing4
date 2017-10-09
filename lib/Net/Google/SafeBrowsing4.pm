@@ -532,14 +532,16 @@ sub lookup {
 	foreach my $lookup_hash (keys(%$lookup_hashes)) {
 		# @TODO get_full_hashes should be able to look up multiple hashes at once (it could be faster)
 		my @hash_matches = $self->{storage}->get_full_hashes(hash => $lookup_hash, lists => $list_names);
-		push(@results, @hash_matches);
+		if (scalar(@hash_matches) > 0) {
+			push(@results, @hash_matches);
 
-		# Delete all URI hashes that are based of a URI that was found on GSB
-		my %found_hashes = map { $_->{hash} => 1 } @hash_matches;
-		foreach my $found_hash (keys(%found_hashes)) {
-			map {
-				delete($lookup_hashes->{$_}) if ($urls->{$_}{parent} eq $urls->{$found_hash}{parent})
-			} keys(%$lookup_hashes);
+			# Delete all URI hashes that are based of a URI that was found on GSB
+			my %found_hashes = map { $_->{hash} => 1 } @hash_matches;
+			foreach my $found_hash (keys(%found_hashes)) {
+				map {
+					delete($lookup_hashes->{$_}) if ($urls->{$_}{parent} eq $urls->{$found_hash}{parent})
+				} keys(%$lookup_hashes);
+			}
 		}
 	}
 	$self->{logger} && $self->{logger}->debug(sprintf("%d unknown full hashes remained after local lookup", scalar(keys(%$lookup_hashes))));
@@ -568,6 +570,7 @@ sub lookup {
 	# Map urls to hashes in the resultset
 	foreach my $entry (@results) {
 		$entry->{lookup_url} = $urls->{$entry->{hash}}->as_string();
+		$entry->{original_url} = $urls->{$urls->{$entry->{hash}}->{parent}}->as_string();
 	}
 
 	return @results;
@@ -615,8 +618,8 @@ sub make_lists {
 			foreach my $original (@{ $self->{all_lists} }) {
 				if (
 					($threat eq "*" || $original->{threatType} eq $threat) &&
-					($platform eq "*" || $original->{platformType} eq $platform) &&
-					($threatEntry eq "*" || $original->{threatEntryType} eq $threatEntry))
+						($platform eq "*" || $original->{platformType} eq $platform) &&
+						($threatEntry eq "*" || $original->{threatEntryType} eq $threatEntry))
 				{
 					push(@all, $original);
 				}
@@ -626,10 +629,10 @@ sub make_lists {
 			my ($threat, $platform, $threatEntry) = split(/\//, $list);
 
 			push(@all, {
-				threatType		=> $threat,
-				platformType		=> $platform,
-				threatEntryType		=> $threatEntry,
-			});
+					threatType		=> $threat,
+					platformType		=> $platform,
+					threatEntryType		=> $threatEntry,
+				});
 		}
 	}
 
@@ -653,12 +656,12 @@ sub update_error {
 	my $wait = 0;
 
 	$wait = $errors == 1 ? 60
-		: $errors == 2 ? int(30 * 60 * (rand(1) + 1)) # 30-60 mins
-		: $errors == 3 ? int(60 * 60 * (rand(1) + 1)) # 60-120 mins
-		: $errors == 4 ? int(2 * 60 * 60 * (rand(1) + 1)) # 120-240 mins
-		: $errors == 5 ? int(4 * 60 * 60 * (rand(1) + 1)) # 240-480 mins
-		: $errors  > 5 ? 480 * 60
-		: 0;
+						 : $errors == 2 ? int(30 * 60 * (rand(1) + 1)) # 30-60 mins
+										: $errors == 3 ? int(60 * 60 * (rand(1) + 1)) # 60-120 mins
+													   : $errors == 4 ? int(2 * 60 * 60 * (rand(1) + 1)) # 120-240 mins
+																	  : $errors == 5 ? int(4 * 60 * 60 * (rand(1) + 1)) # 240-480 mins
+																					 : $errors  > 5 ? 480 * 60
+																									: 0;
 
 	$self->{storage}->update_error('time' => $time, 'wait' => $wait, errors => $errors);
 }
@@ -709,10 +712,10 @@ sub request_full_hash {
 	foreach my $info (@prefixes) {
 		if (
 			!defined(first {
-				$_->{threatType} eq $info->{list}->{threatType} &&
-				$_->{platformType} eq $info->{list}->{platformType} &&
-				$_->{threatEntryType} eq $info->{list}->{threatEntryType}
-			} @lists)
+					$_->{threatType} eq $info->{list}->{threatType} &&
+						$_->{platformType} eq $info->{list}->{platformType} &&
+						$_->{threatEntryType} eq $info->{list}->{threatEntryType}
+				} @lists)
 		) {
 			push(@lists, $info->{list});
 		}
@@ -889,3 +892,4 @@ at your option, any later version of Perl 5 you may have available.
 
 1;
 __END__
+
