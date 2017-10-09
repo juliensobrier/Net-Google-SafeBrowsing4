@@ -618,8 +618,8 @@ sub make_lists {
 			foreach my $original (@{ $self->{all_lists} }) {
 				if (
 					($threat eq "*" || $original->{threatType} eq $threat) &&
-						($platform eq "*" || $original->{platformType} eq $platform) &&
-						($threatEntry eq "*" || $original->{threatEntryType} eq $threatEntry))
+					($platform eq "*" || $original->{platformType} eq $platform) &&
+					($threatEntry eq "*" || $original->{threatEntryType} eq $threatEntry))
 				{
 					push(@all, $original);
 				}
@@ -629,10 +629,10 @@ sub make_lists {
 			my ($threat, $platform, $threatEntry) = split(/\//, $list);
 
 			push(@all, {
-					threatType		=> $threat,
-					platformType		=> $platform,
-					threatEntryType		=> $threatEntry,
-				});
+				threatType			=> $threat,
+				platformType		=> $platform,
+				threatEntryType		=> $threatEntry,
+			});
 		}
 	}
 
@@ -656,12 +656,12 @@ sub update_error {
 	my $wait = 0;
 
 	$wait = $errors == 1 ? 60
-						 : $errors == 2 ? int(30 * 60 * (rand(1) + 1)) # 30-60 mins
-										: $errors == 3 ? int(60 * 60 * (rand(1) + 1)) # 60-120 mins
-													   : $errors == 4 ? int(2 * 60 * 60 * (rand(1) + 1)) # 120-240 mins
-																	  : $errors == 5 ? int(4 * 60 * 60 * (rand(1) + 1)) # 240-480 mins
-																					 : $errors  > 5 ? 480 * 60
-																									: 0;
+		: $errors == 2 ? int(30 * 60 * (rand(1) + 1)) # 30-60 mins
+		: $errors == 3 ? int(60 * 60 * (rand(1) + 1)) # 60-120 mins
+		: $errors == 4 ? int(2 * 60 * 60 * (rand(1) + 1)) # 120-240 mins
+		: $errors == 5 ? int(4 * 60 * 60 * (rand(1) + 1)) # 240-480 mins
+		: $errors  > 5 ? 480 * 60
+		: 0;
 
 	$self->{storage}->update_error('time' => $time, 'wait' => $wait, errors => $errors);
 }
@@ -713,9 +713,9 @@ sub request_full_hash {
 		if (
 			!defined(first {
 					$_->{threatType} eq $info->{list}->{threatType} &&
-						$_->{platformType} eq $info->{list}->{platformType} &&
-						$_->{threatEntryType} eq $info->{list}->{threatEntryType}
-				} @lists)
+					$_->{platformType} eq $info->{list}->{platformType} &&
+					$_->{threatEntryType} eq $info->{list}->{threatEntryType}
+			} @lists)
 		) {
 			push(@lists, $info->{list});
 		}
