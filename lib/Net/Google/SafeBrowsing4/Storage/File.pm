@@ -359,10 +359,10 @@ sub get_prefixes {
 
 		foreach my $hash (@hashes) {
 			my $prefix = undef;
-			my $index = binsearch {substr($a,0,length($b)) cmp $b} $hash, @{ $db->{hashes} };
-			if (defined $index) {
+			my $index = binsearch {substr($a, 0, length($b)) cmp $b} $hash, @{$db->{hashes}};
+			if (defined($index)) {
 				$prefix = $db->{hashes}->[$index];
-				push(@data, { prefix => $prefix, list => $list });
+				push(@data, { prefix => $prefix, list => $list, hash => $hash });
 			}
 		}
 	}
