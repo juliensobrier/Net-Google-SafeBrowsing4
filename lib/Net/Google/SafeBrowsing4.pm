@@ -18,7 +18,7 @@ use Net::Google::SafeBrowsing4::URI;
 
 our @EXPORT = qw(DATABASE_RESET INTERNAL_ERROR SERVER_ERROR NO_UPDATE NO_DATA SUCCESSFUL);
 
-our $VERSION = '0.6';
+our $VERSION = '0.7';
 
 =head1 NAME
 
@@ -365,7 +365,7 @@ sub update {
 
 =head2 get_lists()
 
-Gets all threat list names from Google Safe Browsing.
+Gets all threat list names from Google Safe Browsing and save them.
 
 	my $lists = $gsb->get_lists();
 
@@ -418,6 +418,8 @@ sub get_lists {
 		$self->{last_error} = "get_lists: Invalid Response: Data missing the right key";
 		return undef;
 	}
+	
+	$self->{storage}->save_lists($info->{threatLists});
 
 	return $info->{threatLists};
 }
@@ -595,7 +597,12 @@ sub make_lists {
 
 	if (scalar(@lists) == 0) {
 		if (scalar(@{ $self->{all_lists} }) == 0) {
-			$self->{all_lists} = $self->get_lists();
+			my $lists = $self->{storage}->get_lists();
+			if (scalar @$lists == 0) {
+				$lists = $self->get_lists();
+			}
+		
+			$self->{all_lists} = $self->$lists;
 		}
 
 		return $self->{all_lists};
@@ -881,7 +888,7 @@ Julien Sobrier, E<lt>julien@sobrier.netE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2016 by Julien Sobrier
+Copyright (C) 2017 by Julien Sobrier
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.8 or,
