@@ -117,6 +117,8 @@ sub generate_lookupuris {
 		my $part_count = scalar(@parts);
 		$part_count = $part_count > 4 ? 4 : $part_count - 1; # limit to 4
 		my $previous = "";
+		
+		push(@paths, "/");
 		# Skip the first entry in @parts as it is always an empty string
 		for (my $i = 1; $i < $part_count; $i++) {
 			$previous .= "/" . $parts[$i] ."/";
