@@ -162,6 +162,11 @@ Optional. Network timeout setting for L<LWP::UserAgent> (60 seconds by default)
 
 Optional. List of accepted compressions for HTTP response. Enabling all supported compressions reported by L<HTTP::Message> by default.
 
+
+=item max_hash_request 
+
+Optional. maximum number of full hashes to request. (500 by default)
+
 =back
 
 =cut
@@ -183,6 +188,8 @@ sub new {
 		http_agent	=> LWP::UserAgent->new(),
 		http_timeout	=> 60,
 		http_compression => '' . HTTP::Message->decodable(),
+		
+		max_hash_request => 500,
 
 		%args,
 	};
@@ -711,80 +718,86 @@ sub request_full_hash {
 		},
 	};
 
-	my @lists = ();
-	my %hashes = ();
-	my %threats = ();
-	my %platforms = ();
-	my %threatEntries = ();
-	foreach my $info (@prefixes) {
-		if (
-			!defined(first {
-				$_->{threatType} eq $info->{list}->{threatType} &&
-				$_->{platformType} eq $info->{list}->{platformType} &&
-				$_->{threatEntryType} eq $info->{list}->{threatEntryType}
-			} @lists)
-		) {
-			push(@lists, $info->{list});
+	
+	my @full_hashes = ();
+	while (scalar @prefixes > 0) {
+		my @send = splice(@prefixes, 0, $self->{max_hash_request});
+	
+		my @lists = ();
+		my %hashes = ();
+		my %threats = ();
+		my %platforms = ();
+		my %threatEntries = ();
+		foreach my $info (@send) {
+			if (
+				!defined(first {
+					$_->{threatType} eq $info->{list}->{threatType} &&
+					$_->{platformType} eq $info->{list}->{platformType} &&
+					$_->{threatEntryType} eq $info->{list}->{threatEntryType}
+				} @lists)
+			) {
+				push(@lists, $info->{list});
+			}
+
+			$hashes{ trim(encode_base64($info->{prefix})) } = 1;
+			$threats{ $info->{list}->{threatType} } = 1;
+			$platforms{ $info->{list}->{platformType} } = 1;
+			$threatEntries{ $info->{list}->{threatEntryType} } = 1;
 		}
 
-		$hashes{ trim(encode_base64($info->{prefix})) } = 1;
-		$threats{ $info->{list}->{threatType} } = 1;
-		$platforms{ $info->{list}->{platformType} } = 1;
-		$threatEntries{ $info->{list}->{threatEntryType} } = 1;
+		# Get state for each list
+		$info->{clientStates} = [];
+		foreach my $list (@lists) {
+			push(@{ $info->{clientStates} }, $self->{storage}->get_state(list => $list));
+		}
+
+		$info->{threatInfo} = {
+			threatTypes		=> [ keys(%threats) ],
+			platformTypes 		=> [ keys(%platforms) ],
+			threatEntryTypes 	=> [ keys(%threatEntries) ],
+			threatEntries		=> [ map { { hash => $_ } } keys(%hashes) ],
+		};
+
+		my $response = $self->{http_agent}->post(
+			$self->{base} . "/fullHashes:find?key=" . $self->{key},
+			"Content-Type" => "application/json",
+			Content => encode_json($info)
+		);
+
+		$self->{logger} && $self->{logger}->trace($response->request()->as_string());
+		$self->{logger} && $self->{logger}->trace($response->as_string());
+
+		if (! $response->is_success()) {
+			$self->{logger} && $self->{logger}->error("Full hash request failed");
+			$self->{last_error} = "Full hash request failed";
+
+			# TODO
+	#		foreach my $info (keys keys %hashes) {
+	#			my $prefix = $info->{prefix};
+	#
+	#			my $errors = $self->{storage}->get_full_hash_error(prefix => $prefix);
+	#			if (defined $errors && (
+	#				$errors->{errors} >=2 			# backoff mode
+	#				|| $errors->{errors} == 1 && (time() - $errors->{timestamp}) > 5 * 60)) { # 5 minutes
+	#					$self->{storage}->full_hash_error(prefix => $prefix, timestamp => time()); # more complicate than this, need to check time between 2 errors
+	#			}
+	#		}
+		}
+		else {
+			$self->{logger} && $self->{logger}->debug("Full hash request OK");
+			
+			push(@full_hashes, $self->parse_full_hashes($response->decoded_content(encoding => 'none')));
+
+			# TODO
+	#		foreach my $prefix (@$prefixes) {
+	#			my $prefix = $info->{prefix};
+	#
+	#			$self->{storage}->full_hash_ok(prefix => $prefix, timestamp => time());
+	#		}
+		}
 	}
 
-	# Get state for each list
-	$info->{clientStates} = [];
-	foreach my $list (@lists) {
-		push(@{ $info->{clientStates} }, $self->{storage}->get_state(list => $list));
-	}
-
-	$info->{threatInfo} = {
-		threatTypes		=> [ keys(%threats) ],
-		platformTypes 		=> [ keys(%platforms) ],
-		threatEntryTypes 	=> [ keys(%threatEntries) ],
-		threatEntries		=> [ map { { hash => $_ } } keys(%hashes) ],
-	};
-
-	my $response = $self->{http_agent}->post(
-		$self->{base} . "/fullHashes:find?key=" . $self->{key},
-		"Content-Type" => "application/json",
-		Content => encode_json($info)
-	);
-
-	$self->{logger} && $self->{logger}->trace($response->request()->as_string());
-	$self->{logger} && $self->{logger}->trace($response->as_string());
-
-	if (! $response->is_success()) {
-		$self->{logger} && $self->{logger}->error("Full hash request failed");
-		$self->{last_error} = "Full hash request failed";
-
-		# TODO
-#		foreach my $info (keys keys %hashes) {
-#			my $prefix = $info->{prefix};
-#
-#			my $errors = $self->{storage}->get_full_hash_error(prefix => $prefix);
-#			if (defined $errors && (
-#				$errors->{errors} >=2 			# backoff mode
-#				|| $errors->{errors} == 1 && (time() - $errors->{timestamp}) > 5 * 60)) { # 5 minutes
-#					$self->{storage}->full_hash_error(prefix => $prefix, timestamp => time()); # more complicate than this, need to check time between 2 errors
-#			}
-#		}
-
-		return ();
-	}
-	else {
-		$self->{logger} && $self->{logger}->debug("Full hash request OK");
-
-		# TODO
-#		foreach my $prefix (@$prefixes) {
-#			my $prefix = $info->{prefix};
-#
-#			$self->{storage}->full_hash_ok(prefix => $prefix, timestamp => time());
-#		}
-	}
-
-	return $self->parse_full_hashes($response->decoded_content(encoding => 'none'));
+	return @full_hashes;
 }
 
 =head2 parse_full_hashes()
