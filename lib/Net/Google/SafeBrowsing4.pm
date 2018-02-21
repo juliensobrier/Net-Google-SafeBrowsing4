@@ -26,14 +26,17 @@ Net::Google::SafeBrowsing4 - Perl extension for the Google Safe Browsing v4 API.
 
 =head1 SYNOPSIS
 
+	use Log::Log4perl qw(:easy);
 	use Net::Google::SafeBrowsing4;
 	use Net::Google::SafeBrowsing4::Storage::File;
+
+        Log::Log4perl->easy_init($DEBUG);
 
 	my $storage = Net::Google::SafeBrowsing4::Storage::File->new(path => '.');
 	my $gsb = Net::Google::SafeBrowsing4->new(
 		key 	=> "my key",
 		storage	=> $storage,
-		logger	=> Log::Log4perl->get_logger();
+		logger	=> Log::Log4perl->get_logger(),
 	);
 
 	$gsb->update();
