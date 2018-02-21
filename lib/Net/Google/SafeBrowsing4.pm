@@ -605,13 +605,11 @@ sub make_lists {
 	if (scalar(@lists) == 0) {
 		if (scalar(@{ $self->{all_lists} }) == 0) {
 			my $lists = $self->{storage}->get_lists();
-			if (scalar @$lists == 0) {
+			if (scalar(@$lists) == 0) {
 				$lists = $self->get_lists();
 			}
-		
-			$self->{all_lists} = $self->$lists;
+			$self->{all_lists} = $lists;
 		}
-
 		return $self->{all_lists};
 	}
 
