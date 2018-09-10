@@ -5,6 +5,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
 	NAME			=> 'Net::Google::SafeBrowsing4',
 	VERSION_FROM	=> 'lib/Net/Google/SafeBrowsing4.pm',
+	LICENSE  	=> 'artistic_2',
 	PREREQ_PM		=> {
 		constant		=> 0,
 		Carp			=> 0,
