@@ -35,8 +35,6 @@ Net::Google::SafeBrowsing4::URI takes care of normalizing URLs, extracting suffi
 
 	my $gsb_uri = Net::Google::SafeBrowsing4::URI->new('http://my.example.site:80/path/to/file.html?query=param#fragment');
 
-=over
-
 Initializes the object.
 
 Arguments:
@@ -44,8 +42,6 @@ Arguments:
 =over
 
 =item $uri The URL to parse
-
-=back
 
 =back
 
@@ -72,8 +68,6 @@ sub new {
 =item as_string
 
 Returns the normalized URI as string.
-
-=back
 
 =cut
 
@@ -147,6 +141,8 @@ sub generate_lookupuris {
 =item hash
 
 Generates the SHA-256 hash of the URI (with scheme removed).
+
+=back
 
 =cut
 
