@@ -174,8 +174,6 @@ Arguments
 
 Required. Google Safe Browsing list.
 
-=back
-
 =item hashes
 
 Required. List of full hashes.
