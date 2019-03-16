@@ -274,6 +274,9 @@ sub update {
 	}
 
 	my $all_lists = $self->make_lists(lists => $lists);
+	if (!defined($all_lists)) {
+		return SERVER_ERROR;
+	}
 	my $info = {
 		client => {
 			clientId => 'Net::Google::SafeBrowsing4',
@@ -412,6 +415,7 @@ sub get_lists {
 
 	if (!$response->is_success()) {
 		$self->{last_error} = "get_lists: " . $response->status_line();
+		$self->{logger} && $self->{logger}->error($self->{last_error});
 		return undef;
 	}
 
@@ -421,14 +425,16 @@ sub get_lists {
 	};
 	if ($@ || ref($info) ne 'HASH') {
 		$self->{last_error} = "get_lists: Invalid Response: " . ($@ || "Data is an array and not an object");
+		$self->{logger} && $self->{logger}->error($self->{last_error});
 		return undef;
 	}
 
 	if (!exists($info->{threatLists})) {
 		$self->{last_error} = "get_lists: Invalid Response: Data missing the right key";
+		$self->{logger} && $self->{logger}->error($self->{last_error});
 		return undef;
 	}
-	
+
 	$self->{storage}->save_lists($info->{threatLists});
 
 	return $info->{threatLists};
