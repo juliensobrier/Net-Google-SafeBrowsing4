@@ -40,7 +40,7 @@ This module cannot be used on its own as it does not actually store anything. Al
 =cut
 
 sub new {
-	...
+	die("Unimplemented");
 }
 
 =head1 PUBLIC FUNCTIONS
@@ -87,7 +87,7 @@ Required. Google Safe Browsing list.
 =cut
 
 sub save {
-	...
+	die("Unimplemented");
 }
 
 
@@ -113,7 +113,7 @@ No return value
 =cut
 
 sub reset {
-	...
+	die("Unimplemented");
 }
 
 
@@ -129,7 +129,7 @@ No arguments
 =cut
 
 sub next_update {
-	...
+	die("Unimplemented");
 }
 
 
@@ -154,7 +154,7 @@ Required. Google Safe Browsing list.
 =cut
 
 sub get_state {
-	...
+	die("Unimplemented");
 }
 
 
@@ -184,7 +184,7 @@ Required. List of full hashes.
 =cut
 
 sub get_prefixes {
-	...
+	die("Unimplemented");
 }
 
 =head2 updated()
@@ -214,7 +214,7 @@ No return value
 =cut
 
 sub updated {
-	...
+	die("Unimplemented");
 }
 
 
@@ -254,7 +254,7 @@ Array of full hashes:
 =cut
 
 sub get_full_hashes {
-	...
+	die("Unimplemented");
 }
 
 
@@ -289,7 +289,7 @@ No return value
 =cut
 
 sub update_error {
-	...
+	die("Unimplemented");
 }
 
 =head2 last_update()
@@ -318,7 +318,7 @@ Hash reference
 =cut
 
 sub last_update {
-	...
+	die("Unimplemented");
 }
 
 =head2 add_full_hashes()
@@ -355,7 +355,7 @@ No return value
 =cut
 
 sub add_full_hashes {
-	...
+	die("Unimplemented");
 }
 
 =head2 full_hash_error()
@@ -386,7 +386,7 @@ No return value
 =cut
 
 sub full_hash_error {
-	...
+	die("Unimplemented");
 }
 
 =head2 full_hash_ok()
@@ -417,7 +417,7 @@ No return value
 =cut
 
 sub full_hash_ok {
-	...
+	die("Unimplemented");
 }
 
 =head2 get_full_hash_error()
@@ -457,7 +457,7 @@ Hash reference in the following format if there was an error:
 =cut
 
 sub get_full_hash_error {
-	...
+	die("Unimplemented");
 }
 
 =head2 get_lists()
@@ -488,7 +488,7 @@ Returns an array reference of all the lists:
 
 
 sub get_lists {
-	...
+	die("Unimplemented");
 }
 
 
@@ -518,7 +518,7 @@ Store the threat list names from Google Safe Browsing.
 
 
 sub save_lists {
-	...
+	die("Unimplemented");
 }
 
 
