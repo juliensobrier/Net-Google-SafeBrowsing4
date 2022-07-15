@@ -5,6 +5,7 @@
 use strict;
 use warnings;
 
+use File::Temp qw(tempdir);
 use HTTP::Response;
 use JSON::XS;
 use Test::LWP::UserAgent;
@@ -20,7 +21,7 @@ sub prepare_test {
 	my $lwp = Test::LWP::UserAgent->new();
 	my $gsb = Net::Google::SafeBrowsing4->new(
 		key => "random-api-key-random-api-key-random-ap",
-		storage => Net::Google::SafeBrowsing4::Storage::File->new(path => "."),
+		storage => Net::Google::SafeBrowsing4::Storage::File->new(path => tempdir( CLEANUP => 1 )),
 		http_agent => $lwp,
 	);
 

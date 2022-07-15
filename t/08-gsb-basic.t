@@ -5,6 +5,7 @@
 use strict;
 use warnings;
 
+use File::Temp qw(tempdir);
 use HTTP::Message;
 use LWP::UserAgent;
 use Test::More qw(no_plan);
@@ -23,7 +24,7 @@ $gsb = Net::Google::SafeBrowsing4->new();
 is($gsb, undef, "SafeBrowsing4 object needs an API key and a Storage object.");
 
 $gsb = Net::Google::SafeBrowsing4->new(
-	storage => Net::Google::SafeBrowsing4::Storage::File->new(path => "."),
+	storage => Net::Google::SafeBrowsing4::Storage::File->new(path => tempdir( CLEANUP => 1 )),
 );
 is($gsb, undef, "SafeBrowsing4 object needs an API key.");
 
@@ -34,7 +35,7 @@ is($gsb, undef, "SafeBrowsing4 object needs a Storage object.");
 
 $gsb = Net::Google::SafeBrowsing4->new(
 	key => "random-api-key-random-api-key-random-ap",
-	storage => Net::Google::SafeBrowsing4::Storage::File->new(path => "."),
+	storage => Net::Google::SafeBrowsing4::Storage::File->new(path => tempdir( CLEANUP => 1 )),
 	http_agent => undef,
 );
 is($gsb, undef, "SafeBrowsing4 object cannot work without a http_agent.");
@@ -42,7 +43,7 @@ is($gsb, undef, "SafeBrowsing4 object cannot work without a http_agent.");
 $gsb =  new_ok(
 	"Net::Google::SafeBrowsing4" => [
 		key => "random-api-key-random-api-key-random-ap",
-		storage => Net::Google::SafeBrowsing4::Storage::File->new(path => "."),
+		storage => Net::Google::SafeBrowsing4::Storage::File->new(path => tempdir( CLEANUP => 1 )),
 	],
 	"Net::Google::SafeBrowsing4"
 );
@@ -64,7 +65,7 @@ $lwp->default_header("Accept-Encoding" => "");
 $lwp->local_address("192.160.0.124");
 $gsb = Net::Google::SafeBrowsing4->new(
 	key => "random-api-key-random-api-key-random-ap",
-	storage => Net::Google::SafeBrowsing4::Storage::File->new(path => "."),
+	storage => Net::Google::SafeBrowsing4::Storage::File->new(path => tempdir( CLEANUP => 1 )),
 	http_agent => $lwp,
 );
 ok($gsb, "SafeBrowsing4 object accepts http_agent.");

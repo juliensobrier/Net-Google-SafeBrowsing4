@@ -11,6 +11,7 @@ WriteMakefile(
 		Carp			=> 0,
 		Digest::SHA		=> 0,
 		Exporter		=> 0,
+		File::Temp		=> 0.05,
 		HTTP::Message		=> 0,
 		JSON::XS		=> 0,
 		List::Util		=> 0,
