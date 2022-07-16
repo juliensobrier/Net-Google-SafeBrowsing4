@@ -45,10 +45,6 @@ sub new {
 
 =head1 PUBLIC FUNCTIONS
 
-=over 4
-
-=back
-
 =head2 save()
 
 Add chunk information to the local database
@@ -537,7 +533,7 @@ Julien Sobrier, E<lt>julien@sobrier.netE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2016 by Julien Sobrier
+Copyright (C) 2016-2022 by Julien Sobrier
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.8 or,

@@ -18,7 +18,7 @@ use Net::Google::SafeBrowsing4::URI;
 
 our @EXPORT = qw(DATABASE_RESET INTERNAL_ERROR SERVER_ERROR NO_UPDATE NO_DATA SUCCESSFUL);
 
-our $VERSION = '0.7.1';
+our $VERSION = '0.8.2';
 
 =head1 NAME
 
@@ -908,7 +908,7 @@ Julien Sobrier, E<lt>julien@sobrier.netE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2017 by Julien Sobrier
+Copyright (C) 2016-2022 by Julien Sobrier
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.8 or,

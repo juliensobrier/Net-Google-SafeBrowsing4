@@ -2,12 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title></title>
+<title>Net::Google::SafeBrowsing4 - Perl extension for the Google Safe Browsing v4 API.</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <link rev="made" href="mailto:root@localhost" />
 </head>
 
-<body>
+<body id="_podtop_">
 
 
 
@@ -24,13 +24,12 @@
   <li><a href="#PUBLIC-FUNCTIONS">PUBLIC FUNCTIONS</a>
     <ul>
       <li><a href="#update">update()</a></li>
-      <li><a href="#lookup">lookup()</a></li>
       <li><a href="#get_lists">get_lists()</a></li>
+      <li><a href="#lookup">lookup()</a></li>
     </ul>
   </li>
   <li><a href="#PRIVATE-FUNCTIONS">PRIVATE FUNCTIONS</a>
     <ul>
-      <li><a href="#lookup_suffix">lookup_suffix()</a></li>
       <li><a href="#make_lists">make_lists()</a></li>
       <li><a href="#update_error">update_error()</a></li>
       <li><a href="#make_lists_for_update">make_lists_for_update()</a></li>
@@ -44,38 +43,39 @@
   <li><a href="#COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</a></li>
 </ul>
 
-<h1 id="NAME">NAME</h1>
+<a href="#_podtop_"><h1 id="NAME">NAME</h1></a>
 
 <p>Net::Google::SafeBrowsing4 - Perl extension for the Google Safe Browsing v4 API.</p>
 
-<h1 id="SYNOPSIS">SYNOPSIS</h1>
+<a href="#_podtop_"><h1 id="SYNOPSIS">SYNOPSIS</h1></a>
 
-<pre><code>        use Net::Google::SafeBrowsing4;
-        use Net::Google::SafeBrowsing4::Storage::File;
+<pre><code>use Log::Log4perl qw(:easy);
+use Net::Google::SafeBrowsing4;
+use Net::Google::SafeBrowsing4::Storage::File;
 
-        my $storage = Net::Google::SafeBrowsing4::Storage::File-&gt;new(path =&gt; &#39;.&#39;);
-        my $gsb = Net::Google::SafeBrowsing4-&gt;new(
-                key     =&gt; &quot;my key&quot;,
-                storage =&gt; $storage,
-                logger  =&gt; Log::Log4perl-&gt;get_logger();
-        );
+Log::Log4perl-&gt;easy_init($DEBUG);
 
-        $gsb-&gt;update();
-        my @matches = $gsb-&gt;lookup(url =&gt; &#39;http://ianfette.org/&#39;);
+my $storage = Net::Google::SafeBrowsing4::Storage::File-&gt;new(path =&gt; &#39;.&#39;);
+my $gsb = Net::Google::SafeBrowsing4-&gt;new(
+        key     =&gt; &quot;my key&quot;,
+        storage =&gt; $storage,
+        logger  =&gt; Log::Log4perl-&gt;get_logger(),
+);
 
-        if (scalar(@matches) &gt; 0) {
-                print(&quot;http://ianfette.org/ is flagged as a dangerous site\n&quot;);
-        }
+$gsb-&gt;update();
+my @matches = $gsb-&gt;lookup(url =&gt; &#39;http://ianfette.org/&#39;);
 
-        $storage-&gt;close();</code></pre>
+if (scalar(@matches) &gt; 0) {
+        print(&quot;http://ianfette.org/ is flagged as a dangerous site\n&quot;);
+}
 
-<h1 id="DESCRIPTION">DESCRIPTION</h1>
+$storage-&gt;close();</code></pre>
+
+<a href="#_podtop_"><h1 id="DESCRIPTION">DESCRIPTION</h1></a>
 
 <p>Net::Google::SafeBrowsing4 implements the Google Safe Browsing v4 API.</p>
 
-<p>The library passes most of the unit tests listed in the API documentation. See the documentation (<a href="https://developers.google.com/safe-browsing/v4/urls-hashing#canonicalization">https://developers.google.com/safe-browsing/v4/urls-hashing#canonicalization</a>) for more details about the unit tests.</p>
-
-<p>The Google Safe Browsing database must be stored and managed locally. <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4/Storage/File.html">Net::Google::SafeBrowsing4::Storage::File</a> uses files as the storage back-end. Other storage mechanisms (databases, memory, etc.) can be added and used transparently with this module.</p>
+<p>The Google Safe Browsing database must be stored and managed locally. <a>Net::Google::SafeBrowsing4::Storage::File</a> uses files as the storage back-end. Other storage mechanisms (databases, memory, etc.) can be added and used transparently with this module.</p>
 
 <p>The source code is available on github at <a href="https://github.com/juliensobrier/Net-Google-SafeBrowsing4">https://github.com/juliensobrier/Net-Google-SafeBrowsing4</a>.</p>
 
@@ -83,7 +83,7 @@
 
 <p>IMPORTANT: Google Safe Browsing v4 requires an API key from Google: https://developers.google.com/safe-browsing/v4/get-started.</p>
 
-<h1 id="CONSTANTS">CONSTANTS</h1>
+<a href="#_podtop_"><h1 id="CONSTANTS">CONSTANTS</h1></a>
 
 <p>Several constants are exported by this module:</p>
 
@@ -122,22 +122,22 @@
 <dt id="SUCCESSFUL">SUCCESSFUL</dt>
 <dd>
 
-<p>The operation was successful.</p>
+<p>The update operation was successful.</p>
 
 </dd>
 </dl>
 
-<h1 id="CONSTRUCTOR">CONSTRUCTOR</h1>
+<a href="#_podtop_"><h1 id="CONSTRUCTOR">CONSTRUCTOR</h1></a>
 
 <h2 id="new">new()</h2>
 
 <p>Create a Net::Google::SafeBrowsing4 object</p>
 
-<pre><code>        my $gsb = Net::Google::SafeBrowsing4-&gt;new(
-                key             =&gt; &quot;my key&quot;,
-                storage =&gt; Net::Google::SafeBrowsing4::Storage::File-&gt;new(path =&gt; &#39;.&#39;),
-                lists   =&gt; [&quot;*/ANY_PLATFORM/URL&quot;],
-        );</code></pre>
+<pre><code>my $gsb = Net::Google::SafeBrowsing4-&gt;new(
+        key     =&gt; &quot;my key&quot;,
+        storage =&gt; Net::Google::SafeBrowsing4::Storage::File-&gt;new(path =&gt; &#39;.&#39;),
+        lists   =&gt; [&quot;*/ANY_PLATFORM/URL&quot;],
+);</code></pre>
 
 <p>Arguments</p>
 
@@ -152,13 +152,13 @@
 <dt id="key">key</dt>
 <dd>
 
-<p>Required. Your Google Safe browsing API key</p>
+<p>Required. Your Google Safe Browsing API key</p>
 
 </dd>
 <dt id="storage">storage</dt>
 <dd>
 
-<p>Required. Object which handles the storage for the Google Safe Browsing database. See <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4/Storage.html">Net::Google::SafeBrowsing4::Storage</a> for more details.</p>
+<p>Required. Object which handles the storage for the Google Safe Browsing database. See <a>Net::Google::SafeBrowsing4::Storage</a> for more details.</p>
 
 </dd>
 <dt id="lists">lists</dt>
@@ -170,7 +170,7 @@
 <dt id="logger">logger</dt>
 <dd>
 
-<p>Optional. <a href="http:/search.cpan.org?query=/../../../../../../../usr/share/perl5/Log/Log4perl.html">Log::Log4perl</a> compatible object reference. By default this option is unset, making Net::Google::SafeBrowsing4 silent.</p>
+<p>Optional. <a>Log::Log4perl</a> compatible object reference. By default this option is unset, making Net::Google::SafeBrowsing4 silent.</p>
 
 </dd>
 <dt id="perf">perf</dt>
@@ -188,34 +188,40 @@
 <dt id="http_agent">http_agent</dt>
 <dd>
 
-<p>Optional. <a href="http:/search.cpan.org?query=/../../../../../../../usr/share/perl5/LWP/UserAgent.html">LWP::UserAgent</a> to use for HTTPS requests. Use this option for advanced networking options, like <a href="#PROXIES-AND-LOCAL-ADDRESSES">proxies or local addresses</a>.</p>
+<p>Optional. <a>LWP::UserAgent</a> to use for HTTPS requests. Use this option for advanced networking options, like <a href="#PROXIES-AND-LOCAL-ADDRESSES">proxies or local addresses</a>.</p>
 
 </dd>
 <dt id="http_timeout">http_timeout</dt>
 <dd>
 
-<p>Optional. Network timeout setting for <a href="http:/search.cpan.org?query=/../../../../../../../usr/share/perl5/LWP/UserAgent.html">LWP::UserAgent</a> (60 seconds by default)</p>
+<p>Optional. Network timeout setting for <a>LWP::UserAgent</a> (60 seconds by default)</p>
 
 </dd>
 <dt id="http_compression">http_compression</dt>
 <dd>
 
-<p>Optional. List of accepted compressions for HTTP response. Enabling all supported compressions reported by <a href="http:/search.cpan.org?query=/../../../../../../../usr/share/perl5/HTTP/Message.html">HTTP::Message</a> by default.</p>
+<p>Optional. List of accepted compressions for HTTP response. Enabling all supported compressions reported by <a>HTTP::Message</a> by default.</p>
+
+</dd>
+<dt id="max_hash_request">max_hash_request</dt>
+<dd>
+
+<p>Optional. maximum number of full hashes to request. (500 by default)</p>
 
 </dd>
 </dl>
 
-<h1 id="PUBLIC-FUNCTIONS">PUBLIC FUNCTIONS</h1>
+<a href="#_podtop_"><h1 id="PUBLIC-FUNCTIONS">PUBLIC FUNCTIONS</h1></a>
 
 <h2 id="update">update()</h2>
 
-<p>Perform a database update.</p>
+<p>Performs a database update.</p>
 
-<pre><code>        $gsb-&gt;update();</code></pre>
+<pre><code>$gsb-&gt;update();</code></pre>
 
-<p>Return the status of the update (see the list of constants above): INTERNAL_ERROR, SERVER_ERROR, NO_UPDATE, NO_DATA or SUCCESSFUL</p>
+<p>Returns the status of the update (see the list of constants above): INTERNAL_ERROR, SERVER_ERROR, NO_UPDATE, NO_DATA or SUCCESSFUL</p>
 
-<p>This function can handle multiple lists at the same time. If one of the list should not be updated, it will automatically skip it and update the other one. It is faster to update all lists at once rather than doing them one by one.</p>
+<p>This function can handle multiple lists at the same time. If one of the lists should not be updated, it will automatically skip it and update the other one. It is faster to update all lists at once rather than doing them one by one.</p>
 
 <p>Arguments</p>
 
@@ -237,27 +243,52 @@
 </dd>
 </dl>
 
+<h2 id="get_lists">get_lists()</h2>
+
+<p>Gets all threat list names from Google Safe Browsing and save them.</p>
+
+<pre><code>my $lists = $gsb-&gt;get_lists();</code></pre>
+
+<p>Returns an array reference of all the lists:</p>
+
+<pre><code>[
+        {
+                &#39;threatEntryType&#39; =&gt; &#39;URL&#39;,
+                &#39;threatType&#39; =&gt; &#39;MALWARE&#39;,
+                &#39;platformType&#39; =&gt; &#39;ANY_PLATFORM&#39;
+        },
+        {
+                &#39;threatEntryType&#39; =&gt; &#39;URL&#39;,
+                &#39;threatType&#39; =&gt; &#39;MALWARE&#39;,
+                &#39;platformType&#39; =&gt; &#39;WINDOWS&#39;
+        },
+        ...
+]
+
+or C&lt;undef&gt; on error. This method updates C&lt;$gsb-&gt;{last_error}&gt; field.</code></pre>
+
 <h2 id="lookup">lookup()</h2>
 
-<p>Lookup a URL against the Google Safe Browsing database.</p>
+<p>Looks up URL(s) against the Google Safe Browsing database.</p>
 
-<p>Returns the list of hashes, along with the list and any metadata, that matches the URL:</p>
+<p>Returns the list of hashes along with the list and any metadata that matches the URL(s):</p>
 
-<pre><code>        (
-                {
-                        &#39;hash&#39; =&gt; &#39;...&#39;,
-                        &#39;metadata&#39; =&gt; {
-                                &#39;malware_threat_type&#39; =&gt; &#39;DISTRIBUTION&#39;
-                        },
-                        &#39;list&#39; =&gt; {
-                                &#39;threatEntryType&#39; =&gt; &#39;URL&#39;,
-                                &#39;threatType&#39; =&gt; &#39;MALWARE&#39;,
-                                &#39;platformType&#39; =&gt; &#39;ANY_PLATFORM&#39;
-                        },
-                        &#39;cache&#39; =&gt; &#39;300s&#39;
+<pre><code>(
+        {
+                &#39;lookup_url&#39; =&gt; &#39;...&#39;,
+                &#39;hash&#39; =&gt; &#39;...&#39;,
+                &#39;metadata&#39; =&gt; {
+                        &#39;malware_threat_type&#39; =&gt; &#39;DISTRIBUTION&#39;
                 },
-                ...
-        )</code></pre>
+                &#39;list&#39; =&gt; {
+                        &#39;threatEntryType&#39; =&gt; &#39;URL&#39;,
+                        &#39;threatType&#39; =&gt; &#39;MALWARE&#39;,
+                        &#39;platformType&#39; =&gt; &#39;ANY_PLATFORM&#39;
+                },
+                &#39;cache&#39; =&gt; &#39;300s&#39;
+        },
+        ...
+)</code></pre>
 
 <p>Arguments</p>
 
@@ -277,39 +308,13 @@
 </dd>
 </dl>
 
-<h2 id="get_lists">get_lists()</h2>
-
-<p>Get all the lists from Google Safe Browsing.</p>
-
-<pre><code>        my $lists = $gsb-&gt;get_lists();</code></pre>
-
-<p>Return an array reference of all the lists:</p>
-
-<pre><code>        [
-                {
-                        &#39;threatEntryType&#39; =&gt; &#39;URL&#39;,
-                        &#39;threatType&#39; =&gt; &#39;MALWARE&#39;,
-                        &#39;platformType&#39; =&gt; &#39;ANY_PLATFORM&#39;
-                },
-                {
-                        &#39;threatEntryType&#39; =&gt; &#39;URL&#39;,
-                        &#39;threatType&#39; =&gt; &#39;MALWARE&#39;,
-                        &#39;platformType&#39; =&gt; &#39;WINDOWS&#39;
-                },
-                ...
-        ]</code></pre>
-
-<h1 id="PRIVATE-FUNCTIONS">PRIVATE FUNCTIONS</h1>
+<a href="#_podtop_"><h1 id="PRIVATE-FUNCTIONS">PRIVATE FUNCTIONS</h1></a>
 
 <p>These functions are not intended to be used externally.</p>
 
-<h2 id="lookup_suffix">lookup_suffix()</h2>
-
-<p>Lookup uri hashes..</p>
-
 <h2 id="make_lists">make_lists()</h2>
 
-<p>Transform a list from a string (&quot;MALWARE/*/*&quot;) into a list object.</p>
+<p>Transforms a list from a string expression (eg.: &quot;MALWARE/*/*&quot;) into a list object.</p>
 
 <h2 id="update_error">update_error()</h2>
 
@@ -317,36 +322,36 @@
 
 <h2 id="make_lists_for_update">make_lists_for_update()</h2>
 
-<p>Format the list objects for update requests.</p>
+<p>Formats the list objects for update requests.</p>
 
 <h2 id="request_full_hash">request_full_hash()</h2>
 
-<p>Request full full hashes for specific prefixes from Google.</p>
+<p>Requests full full hashes for specific prefixes from Google.</p>
 
 <h2 id="parse_full_hashes">parse_full_hashes()</h2>
 
-<p>Process the request for full hashes from Google.</p>
+<p>Processes the request for full hashes from Google.</p>
 
-<h1 id="PROXIES-AND-LOCAL-ADDRESSES">PROXIES AND LOCAL ADDRESSES</h1>
+<a href="#_podtop_"><h1 id="PROXIES-AND-LOCAL-ADDRESSES">PROXIES AND LOCAL ADDRESSES</h1></a>
 
-<p>To use a proxy or select the network interface to use, simply create and set up an <a href="http:/search.cpan.org?query=/../../../../../../../usr/share/perl5/LWP/UserAgent.html">LWP::UserAgent</a> object and pass it to the constructor:</p>
+<p>To use a proxy or select the network interface to use, simply create and set up an <a>LWP::UserAgent</a> object and pass it to the constructor:</p>
 
-<pre><code>        use LWP::UserAgent;
-        use Net::Google::SafeBrowsing4;
-        use Net::Google::SafeBrowsing4::Storage::File;
+<pre><code>use LWP::UserAgent;
+use Net::Google::SafeBrowsing4;
+use Net::Google::SafeBrowsing4::Storage::File;
 
-        my $ua = LWP::UserAgent-&gt;new();
-        $ua-&gt;env_proxy();
+my $ua = LWP::UserAgent-&gt;new();
+$ua-&gt;env_proxy();
 
-        # $ua-&gt;local_address(&quot;192.168.0.14&quot;);
+# $ua-&gt;local_address(&quot;192.168.0.14&quot;);
 
-        my $gsb = Net::Google::SafeBrowsing4-&gt;new(
-                key                     =&gt; &quot;my-api-key&quot;,
-                storage         =&gt; Net::Google::SafeBrowsing4::Storage::File-&gt;new(path =&gt; &quot;.&quot;),
-                http_agent      =&gt; $ua,
-        );</code></pre>
+my $gsb = Net::Google::SafeBrowsing4-&gt;new(
+        key             =&gt; &quot;my-api-key&quot;,
+        storage         =&gt; Net::Google::SafeBrowsing4::Storage::File-&gt;new(path =&gt; &quot;.&quot;),
+        http_agent      =&gt; $ua,
+);</code></pre>
 
-<p>Note that the <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4.html">Net::Google::SafeBrowsing4</a> object will override certain LWP properties:</p>
+<p>Note that the <a>Net::Google::SafeBrowsing4</a> object will override certain LWP properties:</p>
 
 <dl>
 
@@ -370,23 +375,23 @@
 </dd>
 </dl>
 
-<h1 id="SEE-ALSO">SEE ALSO</h1>
+<a href="#_podtop_"><h1 id="SEE-ALSO">SEE ALSO</h1></a>
 
-<p>See <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4/URI.html">Net::Google::SafeBrowsing4::URI</a> about URI parsing for Google Safe Browsing v4.</p>
+<p>See <a>Net::Google::SafeBrowsing4::URI</a> about URI parsing for Google Safe Browsing v4.</p>
 
-<p>See <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4/Storage.html">Net::Google::SafeBrowsing4::Storage</a> for the list of public functions.</p>
+<p>See <a>Net::Google::SafeBrowsing4::Storage</a> for the list of public functions.</p>
 
-<p>See <a href="http:/search.cpan.org?query=/lib/Net/Google/SafeBrowsing4/Storage/File.html">Net::Google::SafeBrowsing4::Storage::File</a> for a back-end storage using files.</p>
+<p>See <a>Net::Google::SafeBrowsing4::Storage::File</a> for a back-end storage using files.</p>
 
 <p>Google Safe Browsing v4 API: <a href="https://developers.google.com/safe-browsing/v4/">https://developers.google.com/safe-browsing/v4/</a></p>
 
-<h1 id="AUTHOR">AUTHOR</h1>
+<a href="#_podtop_"><h1 id="AUTHOR">AUTHOR</h1></a>
 
 <p>Julien Sobrier, &lt;julien@sobrier.net&gt;</p>
 
-<h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1>
+<a href="#_podtop_"><h1 id="COPYRIGHT-AND-LICENSE">COPYRIGHT AND LICENSE</h1></a>
 
-<p>Copyright (C) 2016 by Julien Sobrier</p>
+<p>Copyright (C) 2016-2022 by Julien Sobrier</p>
 
 <p>This library is free software; you can redistribute it and/or modify it under the same terms as Perl itself, either Perl version 5.8.8 or, at your option, any later version of Perl 5 you may have available.</p>
 

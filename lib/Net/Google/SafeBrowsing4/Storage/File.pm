@@ -11,7 +11,6 @@ use Path::Tiny;
 use Storable qw(nstore retrieve);
 use List::BinarySearch qw(binsearch);
 
-
 our $VERSION = '0.4';
 
 =head1 NAME
@@ -33,10 +32,6 @@ This is the a file-based implementation of L<Net::Google::SafeBrowsing4::Storage
 
 
 =head1 CONSTRUCTOR
-
-=over 4
-
-=back
 
 =head2 new()
 
@@ -530,7 +525,7 @@ Julien Sobrier, E<lt>julien@sobrier.netE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2016 by Julien Sobrier
+Copyright (C) 2016-2022 by Julien Sobrier
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.8 or,
