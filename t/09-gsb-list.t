@@ -119,3 +119,11 @@ is(scalar(keys(%{$lists->[0]})), 3, "get_lists: list entry has 3 properties");
 is($lists->[0]->{threatEntryType}, $data->{threatLists}->[0]->{threatEntryType}, "get_lists: list entry has correct threatEntryType");
 is($lists->[0]->{threatType}, $data->{threatLists}->[0]->{threatType}, "get_lists: list entry has correct threatType");
 is($lists->[0]->{platformType}, $data->{threatLists}->[0]->{platformType}, "get_lists: list entry has correct platformType");
+
+# Ensure make_lists() private function doesn't corrupt $self->{all_lists}
+$gsb = prepare_test();
+is(ref($gsb->{all_lists}), 'ARRAY', "GSB object is constructed with an all_lists array");
+is(scalar(@{$gsb->{all_lists}}), 0, "GSB object's initial all_lists array is empty");
+my $all_lists = $gsb->make_lists();
+is(ref($gsb->{all_lists}), 'ARRAY', "GSB all_lists remains an array after a failed make_lists");
+is(scalar(@{$gsb->{all_lists}}), 0, "GSB all_lists remains an empty array after a failed make_lists");

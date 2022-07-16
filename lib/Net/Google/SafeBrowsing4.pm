@@ -615,7 +615,7 @@ sub make_lists {
 		if (scalar(@{ $self->{all_lists} }) == 0) {
 			my $lists = $self->{storage}->get_lists();
 			if (scalar(@$lists) == 0) {
-				$lists = $self->get_lists();
+				$lists = $self->get_lists() // [];
 			}
 			$self->{all_lists} = $lists;
 		}
@@ -633,7 +633,7 @@ sub make_lists {
 			my ($threat, $platform, $threatEntry) = split(/\//, $list);
 
 			if (scalar(@{ $self->{all_lists} }) == 0) {
-				$self->{all_lists} = $self->get_lists();
+				$self->{all_lists} = $self->get_lists() // [];
 			}
 
 			foreach my $original (@{ $self->{all_lists} }) {
